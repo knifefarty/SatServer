@@ -1,0 +1,33 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.0",
+	"SemVersion": "1.0.0",
+	"FriendlyName": "Local Server Connect",
+	"Description": "Injects a custom button onto the vanilla Main Menu for one-click local server and LAN connection.",
+	"Category": "Modding",
+	"CreatedBy": "Brodie",
+	"CreatedByURL": "",
+	"DocsURL": "https://docs.ficsit.app",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "LocalServerConnect",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "SML",
+			"Enabled": true,
+			"SemVersion": "^3.8.0"
+		}
+	],
+	"GameVersion": ">=365306"
+}

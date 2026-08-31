@@ -1,0 +1,22 @@
+# Unreal Engine & SML Mod Git Ignore
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+.vs/
+.idea/
+.vscode/
+*.sln
+*.vcxproj*
+*.VC.db
+*.opendb
+*.log
+*.tmp
+*.bak
+*.orig
+
+# Packaged outputs
+*.pak
+*.ucas
+*.utoc
+*.sig

@@ -1,0 +1,37 @@
+name: Build Satisfactory Mod
+
+on:
+  push:
+    branches: [ main, master, dev ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build LocalServerConnect Plugin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Mod Repository
+        uses: actions/checkout@v4
+        with:
+          path: Mods/LocalServerConnect
+
+      - name: Validate Plugin Descriptor
+        run: |
+          echo "Validating LocalServerConnect.uplugin..."
+          python3 -c "import json; json.load(open('Mods/LocalServerConnect/LocalServerConnect.uplugin'))"
+          echo "Plugin descriptor is valid JSON."
+
+      - name: Archive Mod Source Package
+        run: |
+          mkdir -p release
+          zip -r release/LocalServerConnect-Source.zip Mods/LocalServerConnect -x "*.git*"
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: LocalServerConnect-Release
+          path: release/LocalServerConnect-Source.zip
+          retention-days: 14
