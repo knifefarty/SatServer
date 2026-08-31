@@ -34,33 +34,21 @@ void ALocalServerConnectSubsystem::RegisterMainMenuHook()
         return;
     }
 
-    // Resolve Widget_MainMenu Blueprint Class
-    UClass* MainMenuClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/FactoryGame/Interface/UI/Menu/MainMenu/Widget_MainMenu.Widget_MainMenu_C"));
-    if (!MainMenuClass)
+    // Hook after any UWidget SetVisibility runs
+    SUBSCRIBE_UOBJECT_METHOD_AFTER(UWidget, SetVisibility, [this](UWidget* Widget, ESlateVisibility InVisibility)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] Failed to locate Widget_MainMenu_C class."));
-        return;
-    }
-
-    UFunction* ConstructFunc = MainMenuClass->FindFunctionByName(TEXT("Construct"));
-    if (!ConstructFunc)
-    {
-        UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] Failed to locate Construct function on Widget_MainMenu_C."));
-        return;
-    }
-
-    // Hook after Widget_MainMenu::Construct finishes
-    SUBSCRIBE_METHOD_AFTER(ConstructFunc, [](UObject* Context, FFrame& Frame)
-    {
-        UUserWidget* MainMenu = Cast<UUserWidget>(Context);
-        if (MainMenu)
+        if (Widget && Widget->GetClass() && Widget->GetClass()->GetName().Contains(TEXT("Widget_MainMenu")))
         {
-            InjectButtonIntoMainMenu(MainMenu);
+            UUserWidget* UserWidget = Cast<UUserWidget>(Widget);
+            if (UserWidget)
+            {
+                InjectButtonIntoMainMenu(UserWidget);
+            }
         }
     });
 
     bHookRegistered = true;
-    UE_LOG(LogTemp, Log, TEXT("[LocalServerConnect] Successfully hooked Widget_MainMenu::Construct."));
+    UE_LOG(LogTemp, Log, TEXT("[LocalServerConnect] Successfully hooked UWidget::SetVisibility for Main Menu injection."));
 }
 
 void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMenuWidget)
@@ -83,7 +71,6 @@ void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMen
 
     if (!ButtonBox)
     {
-        UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] Could not find VerticalBox button container in Widget_MainMenu."));
         return;
     }
 

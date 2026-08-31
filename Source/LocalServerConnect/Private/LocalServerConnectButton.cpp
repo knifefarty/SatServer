@@ -28,7 +28,7 @@ void ULocalServerConnectButton::NativeConstruct()
     // Bind Button Click
     if (btn_Connect)
     {
-        btn_Connect->SetIsFocusable(true);
+        btn_Connect->IsFocusable = true;
         btn_Connect->OnClicked.RemoveAll(this);
         btn_Connect->OnClicked.AddDynamic(this, &ULocalServerConnectButton::HandleButtonClicked);
     }
