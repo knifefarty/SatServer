@@ -5,6 +5,7 @@
 #include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "GameFramework/PlayerController.h"
 #include "UObject/UnrealType.h"
 
 ULocalServerConnectButton::ULocalServerConnectButton(const FObjectInitializer& ObjectInitializer)
@@ -121,17 +122,18 @@ void ULocalServerConnectButton::ConnectToConfiguredServer(UObject* WorldContextO
         EffectiveIP = TEXT("192.168.1.89");
     }
 
-    FString Command = FString::Printf(TEXT("open %s"), *EffectiveIP);
-
     UWorld* World = WorldContextObject ? WorldContextObject->GetWorld() : nullptr;
     APlayerController* PC = World ? UGameplayStatics::GetPlayerController(World, 0) : nullptr;
 
-    if (PC && World)
+    if (PC)
     {
-        UKismetSystemLibrary::ExecuteConsoleCommand(World, Command, PC);
+        // Use ClientTravel to queue clean map transition at end-of-frame tick
+        // This prevents tearing down Slate while Slate is still processing the click event
+        PC->ClientTravel(EffectiveIP, ETravelType::TRAVEL_Absolute);
     }
     else if (GEngine)
     {
+        FString Command = FString::Printf(TEXT("open %s"), *EffectiveIP);
         GEngine->Exec(World, *Command);
     }
 }
