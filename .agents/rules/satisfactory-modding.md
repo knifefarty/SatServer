@@ -41,8 +41,10 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun Exit Cleanup & Dismantle Protection
-- **Vehicle Exit State Cleanup**:
-  - When the driver exits the vehicle, immediately reset the build gun state via `BuildGun->GotoNoneState()` and `BuildGun->UnEquip()`, and reset input gates and move/look locks (`ResetIgnoreLookInput()`, `ResetIgnoreMoveInput()`).
-- **Vehicle Dismantle Protection**:
-  - Exclude the currently driven vehicle (`HitActor == Vehicle || HitActor->GetAttachParentActor() == Vehicle`) from `BuildGun->GetHitResult()` to prevent accidental dismantling of the active vehicle.
+## 5. Vehicle Build Gun Clearance & Exit Recovery
+- **Vehicle Clearance Suppression**:
+  - During build mode, set `ECC_GameTraceChannel10` (ClearanceDetector) and `ECC_GameTraceChannel4` (Clearance) to `ECR_Ignore` on vehicle primitive components. This stops holograms from detecting the vehicle as a clearance obstruction and popping onto the roof.
+- **On-Foot Weapon Restoration**:
+  - On vehicle exit, call `EquipSlot->SetActiveEquipmentIndex(0)`, `Player->OnRep_ActiveEquipments()`, and `Player->UpdateEquipmentVisibility()` to automatically restore the player's active hand equipment.
+- **Dismantle Reset on Active Vehicle**:
+  - If the raycast hits the current vehicle, call `BuildGun->GetHitResult().Reset()` and `Vehicle->StopIsLookedAtForDismantle_Implementation()` to prevent targeting the active vehicle.
