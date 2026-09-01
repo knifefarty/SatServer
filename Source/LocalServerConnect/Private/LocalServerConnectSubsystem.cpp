@@ -31,14 +31,12 @@ void ALocalServerConnectSubsystem::RegisterMainMenuHook()
         return;
     }
 
-    // Hook SetVisibility - ONLY target the top-level Main Menu widget (BP_MainMenuWidget_C)
-    SUBSCRIBE_UOBJECT_METHOD_AFTER(UWidget, SetVisibility, [](UWidget* Widget, ESlateVisibility InVisibility)
+    auto HookHandler = [](UWidget* Widget)
     {
         if (Widget && Widget->GetClass())
         {
             FString ClassName = Widget->GetClass()->GetName();
-            // Specifically target the Main Menu screen widget, ignoring individual buttons
-            if (ClassName.Equals(TEXT("BP_MainMenuWidget_C")) || ClassName.Equals(TEXT("Widget_MainMenu_C")))
+            if (ClassName.Contains(TEXT("BP_MainMenuWidget")) || ClassName.Contains(TEXT("Widget_MainMenu")))
             {
                 UUserWidget* UserWidget = Cast<UUserWidget>(Widget);
                 if (UserWidget)
@@ -47,10 +45,25 @@ void ALocalServerConnectSubsystem::RegisterMainMenuHook()
                 }
             }
         }
+    };
+
+    SUBSCRIBE_UOBJECT_METHOD_AFTER(UWidget, SynchronizeProperties, [HookHandler](UWidget* Widget)
+    {
+        HookHandler(Widget);
+    });
+
+    SUBSCRIBE_UOBJECT_METHOD_AFTER(UWidget, SetVisibility, [HookHandler](UWidget* Widget, ESlateVisibility InVisibility)
+    {
+        HookHandler(Widget);
+    });
+
+    SUBSCRIBE_UOBJECT_METHOD_AFTER(UUserWidget, SetDesiredFocusWidget, [HookHandler](UUserWidget* UserWidget, UWidget* Widget)
+    {
+        HookHandler(UserWidget);
     });
 
     bHookRegistered = true;
-    UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] Main Menu hook registered for BP_MainMenuWidget_C."));
+    UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] Multi-hook registered for Main Menu injection."));
 }
 
 void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMenuWidget)
@@ -60,7 +73,7 @@ void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMen
         return;
     }
 
-    // Find the primary button container VerticalBox
+    // Locate the vertical box containing the buttons
     UVerticalBox* ButtonBox = nullptr;
     TArray<UWidget*> AllWidgets;
     MainMenuWidget->WidgetTree->GetAllWidgets(AllWidgets);
@@ -69,8 +82,7 @@ void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMen
     {
         if (UVerticalBox* VB = Cast<UVerticalBox>(W))
         {
-            // Look for the VerticalBox that holds the main menu buttons
-            if (VB->GetName().Contains(TEXT("Button")) || VB->GetName().Contains(TEXT("Menu")) || VB->GetChildrenCount() >= 4)
+            if (VB->GetName().Contains(TEXT("Button")) || VB->GetName().Contains(TEXT("Menu")) || VB->GetChildrenCount() >= 3)
             {
                 ButtonBox = VB;
                 break;
@@ -80,11 +92,10 @@ void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMen
 
     if (!ButtonBox)
     {
-        UE_LOG(LogTemp, Error, TEXT("[LocalServerConnect] Could not locate main menu VerticalBox on %s"), *MainMenuWidget->GetClass()->GetName());
         return;
     }
 
-    // Prevent duplicate injection
+    // Check for existing button to prevent duplicates
     for (UWidget* Child : ButtonBox->GetAllChildren())
     {
         if (Child && (Child->IsA(ULocalServerConnectButton::StaticClass()) || Child->GetName().Contains(TEXT("LocalConnect"))))
@@ -99,55 +110,19 @@ void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMen
         PC = UGameplayStatics::GetPlayerController(MainMenuWidget->GetWorld(), 0);
     }
 
-    // Try to instantiate vanilla Widget_FrontEnd_Button_C for authentic Satisfactory styling
-    UClass* VanillaButtonClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/FactoryGame/Interface/UI/Menu/MainMenu/Widget_FrontEnd_Button.Widget_FrontEnd_Button_C"));
-    if (!VanillaButtonClass)
-    {
-        VanillaButtonClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/FactoryGame/Interface/UI/Menu/MainMenu/BP_FrontEnd_Button.BP_FrontEnd_Button_C"));
-    }
+    ULocalServerConnectButton* NewButton = CreateWidget<ULocalServerConnectButton>(PC ? PC : MainMenuWidget->GetOwningPlayer(), ULocalServerConnectButton::StaticClass());
 
-    UUserWidget* InjectedWidget = nullptr;
-
-    if (VanillaButtonClass)
+    if (NewButton)
     {
-        InjectedWidget = CreateWidget<UUserWidget>(PC ? PC : MainMenuWidget->GetOwningPlayer(), VanillaButtonClass);
-        if (InjectedWidget && InjectedWidget->WidgetTree)
-        {
-            // Set button label text to "Connect to Local Host"
-            TArray<UWidget*> SubWidgets;
-            InjectedWidget->WidgetTree->GetAllWidgets(SubWidgets);
-            for (UWidget* SubW : SubWidgets)
-            {
-                if (UTextBlock* TB = Cast<UTextBlock>(SubW))
-                {
-                    TB->SetText(FText::FromString(TEXT("Connect to Local Host")));
-                }
-                if (UButton* Btn = Cast<UButton>(SubW))
-                {
-                    Btn->OnClicked.AddDynamic(GetMutableDefault<ULocalServerConnectButton>(), &ULocalServerConnectButton::HandleButtonClicked);
-                }
-            }
-        }
-    }
-
-    // Fallback to ULocalServerConnectButton if vanilla button class is not found
-    if (!InjectedWidget)
-    {
-        InjectedWidget = CreateWidget<ULocalServerConnectButton>(PC ? PC : MainMenuWidget->GetOwningPlayer(), ULocalServerConnectButton::StaticClass());
-    }
-
-    if (InjectedWidget)
-    {
-        // Insert at Index 2 (below Continue and New Game / Load)
         const int32 SlotIndex = FMath::Clamp(2, 0, ButtonBox->GetChildrenCount());
-        UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(ButtonBox->InsertChildAt(SlotIndex, InjectedWidget));
+        UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(ButtonBox->InsertChildAt(SlotIndex, NewButton));
         if (Slot)
         {
-            Slot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 4.0f));
+            Slot->SetPadding(FMargin(0.0f, 6.0f, 0.0f, 6.0f));
             Slot->SetHorizontalAlignment(HAlign_Fill);
             Slot->SetVerticalAlignment(VAlign_Center);
         }
 
-        UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] >>> INJECTED BUTTON DIRECTLY INTO %s AT SLOT %d! <<<"), *MainMenuWidget->GetClass()->GetName(), SlotIndex);
+        UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] >>> INJECTED LOCAL CONNECT BUTTON INTO %s AT SLOT %d! <<<"), *MainMenuWidget->GetClass()->GetName(), SlotIndex);
     }
 }

@@ -1,5 +1,6 @@
 #include "LocalServerConnectButton.h"
 #include "LocalServerConnectConfig.h"
+#include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
 #include "Components/Border.h"
@@ -22,6 +23,31 @@ void ULocalServerConnectButton::NativeConstruct()
     if (!ConfiguredIP.IsEmpty())
     {
         TargetIP = ConfiguredIP;
+    }
+
+    // If not using a UMG asset, dynamically construct button and text in WidgetTree
+    if (!btn_Connect && WidgetTree)
+    {
+        btn_Connect = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("Dynamic_btn_Connect"));
+        txt_Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Dynamic_txt_Label"));
+
+        if (txt_Label)
+        {
+            txt_Label->SetText(ButtonText);
+            FSlateFontInfo FontInfo = FCoreStyle::GetDefaultFontStyle("Bold", 22);
+            txt_Label->SetFont(FontInfo);
+            txt_Label->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+            txt_Label->SetJustification(ETextJustify::Left);
+        }
+
+        if (btn_Connect)
+        {
+            if (txt_Label)
+            {
+                btn_Connect->AddChild(txt_Label);
+            }
+            WidgetTree->RootWidget = btn_Connect;
+        }
     }
 
     if (btn_Connect)
