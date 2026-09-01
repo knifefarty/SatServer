@@ -41,14 +41,12 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Input & Mapping Context Architecture
-- **Never Run Dynamic Reflection Loops in Per-Frame `Tick()`**:
-  - Dynamic `FProperty` / `FScriptArrayHelper` evaluation inside `Tick()` introduces high risk of `0x11` access violations due to raw struct offset misalignments in packed shipping builds.
-  - **The Standard**: Perform CDO (Class Default Object) configuration at module startup in `StartupModule()`:
+## 5. Vehicle Input & Enhanced Input Subsystem
+- **Unmapping Conflicting Actions in Vehicle IMC**:
+  - Satisfactory's `IMC_Vehicle` maps `EKeys::Gamepad_LeftShoulder` to `IA_ToggleHUD`. To replace this behavior, unmap the key directly from the `UInputMappingContext` asset at startup:
     ```cpp
-    if (FObjectProperty* Prop = FindFProperty<FObjectProperty>(AFGDriveablePawn::StaticClass(), TEXT("mMappingContextToDisable"))) {
-        UObject* CDO = AFGDriveablePawn::StaticClass()->GetDefaultObject();
-        Prop->SetObjectPropertyValue_InContainer(CDO, nullptr);
+    if (UInputMappingContext* VehicleIMC = Cast<UInputMappingContext>(PropIMC->GetObjectPropertyValue_InContainer(CDO))) {
+        VehicleIMC->UnmapKey(nullptr, EKeys::Gamepad_LeftShoulder);
     }
     ```
-  - Clearing `mMappingContextToDisable` on the CDO ensures every vehicle spawned in the world inherits the non-suppressing configuration automatically, requiring zero reflection in `Tick()`.
+  - **Direct Build Gun Activation**: Call `BuildGun->GotoMenuState()`, `BuildGun->GotoDismantleState()`, and `BuildGun->GotoNoneState()` directly on `Driver->GetBuildGun()` rather than character equip wrappers which check `IsDrivingVehicle()`.
