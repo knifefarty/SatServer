@@ -5,6 +5,7 @@
 #include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "UObject/UnrealType.h"
 
 ULocalServerConnectButton::ULocalServerConnectButton(const FObjectInitializer& ObjectInitializer)
     : Super(ObjectInitializer)
@@ -38,7 +39,7 @@ void ULocalServerConnectButton::NativeConstruct()
         {
             WidgetTree->RootWidget = ChildFrontEndButton;
 
-            // Set button text via SetTitle function or Text property
+            // Set button text via SetTitle function
             UFunction* SetTitleFunc = ChildFrontEndButton->FindFunction(FName(TEXT("SetTitle")));
             if (SetTitleFunc)
             {
@@ -64,13 +65,12 @@ void ULocalServerConnectButton::NativeConstruct()
                 ChildFrontEndButton->ProcessEvent(SetBigFunc, &Params);
             }
 
-            // Hook click event
-            FMulticastScriptDelegate* ClickDelegate = ChildFrontEndButton->GetMulticastDelegate(FName(TEXT("OnClicked")));
-            if (ClickDelegate)
+            // Hook click event via Unreal multicast delegate property reflection
+            if (FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(ChildFrontEndButton->GetClass()->FindPropertyByName(FName(TEXT("OnClicked")))))
             {
-                TScriptDelegate<FWeakObjectPtr> Delegate;
+                FScriptDelegate Delegate;
                 Delegate.BindUFunction(this, FName(TEXT("HandleButtonClicked")));
-                ClickDelegate->AddUnique(Delegate);
+                DelegateProp->AddDelegate(Delegate, ChildFrontEndButton);
             }
             return;
         }
