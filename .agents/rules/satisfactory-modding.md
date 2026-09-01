@@ -41,7 +41,14 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Subsystem Architecture vs Virtual Function Funchook
-- **Avoid Funchooking Short Virtual Stubs**:
-  - Small virtual stubs in shipping binaries have instruction prologues shorter than 5 bytes, causing SML's `funchook` to abort with `Fatal error: funchook failed: Too short instructions`.
-  - **The Standard**: Prefer implementing state and vehicle monitoring natively inside a `UGameInstanceSubsystem` implementing `FTickableGameObject`. This provides frame-accurate vehicle detection, automatic input component binding, and input gate management with zero assembly hooking overhead.
+## 5. Vehicle Input & Mapping Context Architecture
+- **Never Run Dynamic Reflection Loops in Per-Frame `Tick()`**:
+  - Dynamic `FProperty` / `FScriptArrayHelper` evaluation inside `Tick()` introduces high risk of `0x11` access violations due to raw struct offset misalignments in packed shipping builds.
+  - **The Standard**: Perform CDO (Class Default Object) configuration at module startup in `StartupModule()`:
+    ```cpp
+    if (FObjectProperty* Prop = FindFProperty<FObjectProperty>(AFGDriveablePawn::StaticClass(), TEXT("mMappingContextToDisable"))) {
+        UObject* CDO = AFGDriveablePawn::StaticClass()->GetDefaultObject();
+        Prop->SetObjectPropertyValue_InContainer(CDO, nullptr);
+    }
+    ```
+  - Clearing `mMappingContextToDisable` on the CDO ensures every vehicle spawned in the world inherits the non-suppressing configuration automatically, requiring zero reflection in `Tick()`.
