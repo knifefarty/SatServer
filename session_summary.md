@@ -1,10 +1,11 @@
-# Session Summary: Mod Successfully Packaged & Installed into Satisfactory
+# Session Summary: Latest Mod Deployed & Ready to Play
 
 ## Completed Milestones
-1. **Full Engine & Mod Packaging Complete**:
-   - Built all Shipping targets (Steam + Epic Games Store) for Windows, Windows Server, and Linux Server.
-   - Generated cooked Zen containers (`.pak`, `.ucas`, `.utoc`) and shipping binaries (`FactoryGameSteam-LocalServerConnect-Win64-Shipping.dll`).
-2. **Mod Installed Directly into Satisfactory**:
-   - Installed to: `K:\SteamLibrary\steamapps\common\Satisfactory\FactoryGame\Mods\LocalServerConnect\`.
-   - Verified configuration at `K:\SteamLibrary\steamapps\common\Satisfactory\FactoryGame\Configs\LocalServerConnect.cfg` with target IP `192.168.1.89`.
-3. **Ready to Play**: Launch Satisfactory normally from Steam!
+1. **Latest Build Extracted & Deployed**:
+   - `FactoryGameSteam-LocalServerConnect-Win64-Shipping.dll` (6:42 PM)
+   - Cooked Pak/Ucas/Utoc containers (6:44 PM)
+   - Placed in `K:\SteamLibrary\steamapps\common\Satisfactory\FactoryGame\Mods\LocalServerConnect\`.
+2. **Hook Improvements**:
+   - Registered `StartupModule()` direct hook on engine load.
+   - Added dynamic WidgetTree traversal for automatic button slot placement.
+3. **Git Updated**: Committed and pushed to [https://github.com/knifefarty/SatServer](https://github.com/knifefarty/SatServer).

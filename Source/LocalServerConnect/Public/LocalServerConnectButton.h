@@ -32,6 +32,13 @@ public:
     UFUNCTION(BlueprintCallable, Category = "LocalServerConnect")
     void SetTargetIP(const FString& InIP);
 
+    UFUNCTION(BlueprintCallable, Category = "LocalServerConnect")
+    void HandleButtonClicked();
+
+    /** Static helper to connect from any context */
+    UFUNCTION(BlueprintCallable, Category = "LocalServerConnect")
+    static void ConnectToConfiguredServer(UObject* WorldContextObject);
+
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LocalServerConnect")
     FText ButtonText;
@@ -47,8 +54,4 @@ protected:
 
     UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "LocalServerConnect")
     TObjectPtr<UBorder> FocusHighlightBorder;
-
-private:
-    UFUNCTION()
-    void HandleButtonClicked();
 };

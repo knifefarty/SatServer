@@ -18,14 +18,12 @@ void ULocalServerConnectButton::NativeConstruct()
 {
     Super::NativeConstruct();
 
-    // Pull IP from SML Config if available
     FString ConfiguredIP = ULocalServerConnectConfig::GetConfiguredServerIP();
     if (!ConfiguredIP.IsEmpty())
     {
         TargetIP = ConfiguredIP;
     }
 
-    // Bind Button Click
     if (btn_Connect)
     {
         btn_Connect->IsFocusable = true;
@@ -33,13 +31,11 @@ void ULocalServerConnectButton::NativeConstruct()
         btn_Connect->OnClicked.AddDynamic(this, &ULocalServerConnectButton::HandleButtonClicked);
     }
 
-    // Set Label Text
     if (txt_Label)
     {
         txt_Label->SetText(ButtonText);
     }
 
-    // Ensure Focus Highlight starts hidden
     if (FocusHighlightBorder)
     {
         FocusHighlightBorder->SetVisibility(ESlateVisibility::Hidden);
@@ -50,7 +46,6 @@ void ULocalServerConnectButton::NativeOnAddedToFocusPath(const FFocusEvent& InFo
 {
     Super::NativeOnAddedToFocusPath(InFocusEvent);
 
-    // Show highlight indicator when navigated via Gamepad D-pad
     if (FocusHighlightBorder)
     {
         FocusHighlightBorder->SetVisibility(ESlateVisibility::Visible);
@@ -61,7 +56,6 @@ void ULocalServerConnectButton::NativeOnRemovedFromFocusPath(const FFocusEvent& 
 {
     Super::NativeOnRemovedFromFocusPath(InFocusEvent);
 
-    // Hide highlight indicator when focus leaves
     if (FocusHighlightBorder)
     {
         FocusHighlightBorder->SetVisibility(ESlateVisibility::Hidden);
@@ -75,27 +69,29 @@ void ULocalServerConnectButton::HandleButtonClicked()
 
 void ULocalServerConnectButton::ExecuteServerConnect()
 {
-    FString EffectiveIP = TargetIP.TrimStartAndEnd();
-    if (EffectiveIP.IsEmpty())
+    ConnectToConfiguredServer(this);
+}
+
+void ULocalServerConnectButton::ConnectToConfiguredServer(UObject* WorldContextObject)
+{
+    FString EffectiveIP = ULocalServerConnectConfig::GetConfiguredServerIP();
+    if (EffectiveIP.TrimStartAndEnd().IsEmpty())
     {
         EffectiveIP = TEXT("192.168.1.89");
     }
 
     FString Command = FString::Printf(TEXT("open %s"), *EffectiveIP);
 
-    APlayerController* PC = GetOwningPlayer();
-    if (!PC)
-    {
-        PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-    }
+    UWorld* World = WorldContextObject ? WorldContextObject->GetWorld() : nullptr;
+    APlayerController* PC = World ? UGameplayStatics::GetPlayerController(World, 0) : nullptr;
 
-    if (PC)
+    if (PC && World)
     {
-        UKismetSystemLibrary::ExecuteConsoleCommand(GetWorld(), Command, PC);
+        UKismetSystemLibrary::ExecuteConsoleCommand(World, Command, PC);
     }
     else if (GEngine)
     {
-        GEngine->Exec(GetWorld(), *Command);
+        GEngine->Exec(World, *Command);
     }
 }
 
