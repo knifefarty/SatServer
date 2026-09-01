@@ -115,7 +115,6 @@ TSharedRef<SWidget> ULocalServerConnectButton::RebuildWidget()
             {
                 IPEditBox->SetText(FText::FromString(TargetIP));
                 IPEditBox->SetHintText(FText::FromString(TEXT("192.168.1.89")));
-                IPEditBox->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 12));
                 UHorizontalBoxSlot* BoxSlot = IPRow->AddChildToHorizontalBox(IPEditBox);
                 if (BoxSlot)
                 {
