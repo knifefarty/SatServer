@@ -41,21 +41,8 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun Raycasting & Camera Rotation
-- **Hologram Aim Raycasting from Vehicle Viewpoint**:
-  - When in a vehicle, the driver character is stationary inside the cabin, causing default build gun traces to hit the vehicle floor ("Invalid Aim Location").
-  - **The Standard**: Project the build gun raycast from `PC->GetPlayerViewPoint` into `BuildGun->GetHitResult()`:
-    ```cpp
-    FVector CameraLoc;
-    FRotator CameraRot;
-    PC->GetPlayerViewPoint(CameraLoc, CameraRot);
-    FVector TraceEnd = CameraLoc + (CameraRot.Vector() * 6000.0f);
-    FCollisionQueryParams QueryParams(TEXT("VehicleBuildModeTrace"), true, Vehicle);
-    QueryParams.AddIgnoredActor(Driver);
-    QueryParams.AddIgnoredActor(Vehicle);
-    FHitResult Hit;
-    if (World->LineTraceSingleByChannel(Hit, CameraLoc, TraceEnd, ECC_Visibility, QueryParams)) {
-        BuildGun->GetHitResult() = Hit;
-    }
-    ```
-  - **Right Stick Look Passthrough**: Poll `EKeys::Gamepad_RightX` and `EKeys::Gamepad_RightY` to call `PC->AddYawInput` and `PC->AddPitchInput` so the camera rotates 360 degrees around the vehicle while building.
+## 5. Vehicle Driving vs Build Mode Context Swapping
+- **Dynamic Context Swapping**:
+  - When in build mode (`BGS_BUILD`, `BGS_DISMANTLE`, `BGS_MENU`), remove `mMappingContext` (the vehicle driving context) from `UEnhancedInputLocalPlayerSubsystem` so all trigger, bumper, d-pad, and stick inputs are dedicated to building. Restore the vehicle context when returning to `BGS_NONE`.
+- **Hologram Location Forwarding**:
+  - To prevent holograms from colliding with the vehicle mesh, trace from the vehicle camera ignoring `Vehicle` and `Driver`, and update the hologram position every frame via `Hologram->SetHologramLocationAndRotation(Hit)` and `DismantleState->SetAimedAtActor(Hit.GetActor())`.
