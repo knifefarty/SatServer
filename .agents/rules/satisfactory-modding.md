@@ -41,9 +41,8 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Mode & Hologram Spawning
-- **`mDrivenVehicle` and Hologram Validation**:
-  - `AFGHologram` checks `Character->IsDrivingVehicle()` (i.e. `mDrivenVehicle != nullptr`) upon spawning and aborts construction with "Invalid Aim Location".
-  - **The Standard**: Clear `Driver->mDrivenVehicle = nullptr;` during driving so `IsDrivingVehicle()` returns false, allowing holograms to spawn and validate placement natively.
-- **Continuous Camera Look**:
-  - Ensure right-stick look analog input (`Gamepad_RightX`/`RightY`) is forwarded directly to `PC->AddYawInput` and `PC->AddPitchInput` unconditionally on every tick.
+## 5. Vehicle Build Mode & Camera Rotation
+- **Preserve `mDrivenVehicle` Pointer**:
+  - `BP_PlayerPawn` animation blueprints query `Driver->GetDrivenVehicle()->GetVelocity()` while seated. Never clear `mDrivenVehicle` to null as it causes unhandled Blueprint null dereference crashes.
+- **Direct Control Rotation for Vehicle Spring Arms**:
+  - Vehicles use `PC->SetControlRotation` directly. Update `PC->SetControlRotation` from analog right-stick inputs (`Gamepad_RightX`/`RightY`) and call `PC->ResetIgnoreLookInput()`.
