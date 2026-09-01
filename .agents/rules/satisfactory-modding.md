@@ -41,14 +41,7 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle UI & Build Menu Invocation
-- **Direct GameUI Widget Invocation**:
-  - While driving, character input actions are decoupled from the Slate viewport.
-  - **The Standard**: Invoke the Build Menu widget directly via `UFGGameUI::OnToggleInteractWidget`:
-    ```cpp
-    UFGGameUI* GameUI = PC->GetGameUI();
-    UClass* BuildMenuClass = LoadClass<UFGInteractWidget>(nullptr, TEXT("/Game/FactoryGame/Interface/UI/InGame/BuildMenu/Widget_BuildMode.Widget_BuildMode_C"));
-    if (GameUI && BuildMenuClass) {
-        GameUI->OnToggleInteractWidget(BuildMenuClass, Driver);
-    }
-    ```
+## 5. Build Menu Widget Differentiation
+- **`Widget_BuildMode` vs `Widget_BuildMenu`**:
+  - `Widget_BuildMode` is only the HUD status banner overlay (disqualifier & hint bar).
+  - `Widget_BuildMenu` (`/Game/FactoryGame/Interface/UI/InGame/BuildMenu/Prototype/Widget_BuildMenu.Widget_BuildMenu_C`) is the actual full interactive building catalogue window with all recipe categories and buttons.
