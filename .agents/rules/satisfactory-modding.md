@@ -41,11 +41,8 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Automated Mod Packaging & Trigger Mapping
-- **AutomationTool Command-Line Packaging**:
-  - Package plugins directly using `RunUAT.bat` with `-platform=Win64 -server -serverplatform=Win64`:
-    ```powershell
-    & "K:\SatisfactoryModding\Engine\Engine\Build\BatchFiles\RunUAT.bat" -ScriptsForProject="$project" PackagePlugin -project="$project" -clientconfig=Shipping -serverconfig=Shipping -utf8output -DLCName=VehicleBuildMode -build -platform=Win64 -server -serverplatform=Win64 -nocompileeditor -installed
-    ```
-- **Unreal Gamepad Trigger Key Constants**:
-  - Use `EKeys::Gamepad_RightTrigger` and `EKeys::Gamepad_LeftTrigger` in UE 5.3 C++.
+## 5. Build Gun Collision Channels & Inverted Y Control
+- **`TC_BuildGun` Collision Channel**:
+  - Satisfactory holograms and build gun raycasts require the official `TC_BuildGun` collision channel (`FactoryGame.h`) rather than standard `ECC_Visibility`. Line traces on `TC_BuildGun` accurately hit foundations, terrain, foliage, and snapping targets.
+- **Inverted Pitch Alignment**:
+  - Add positive pitch delta to vehicle `SpringArm->SetRelativeRotation` to maintain the player's inverted Y-axis preferences.
