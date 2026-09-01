@@ -41,7 +41,17 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Build Menu Widget Differentiation
-- **`Widget_BuildMode` vs `Widget_BuildMenu`**:
-  - `Widget_BuildMode` is only the HUD status banner overlay (disqualifier & hint bar).
-  - `Widget_BuildMenu` (`/Game/FactoryGame/Interface/UI/InGame/BuildMenu/Prototype/Widget_BuildMenu.Widget_BuildMenu_C`) is the actual full interactive building catalogue window with all recipe categories and buttons.
+## 5. Build Gun & Build Menu Lifecycle
+- **Build Gun State Machine Initialization**:
+  - Satisfactory's `Widget_BuildMenu_C` is tightly coupled to the `UFGBuildGunStateMenu` state machine. Manually spawning the widget without an equipped build gun in `BGS_MENU` state causes a null pointer dereference inside the Blueprint VM.
+  - **The Standard**: Always ensure `BuildGun->IsEquipped()` is true and transition state through `BuildGun->GotoMenuState()` and `BuildGun->GotoDismantleState()`:
+    ```cpp
+    if (!BuildGun->IsEquipped()) {
+        BuildGun->Equip(Driver);
+    }
+    if (BuildGun->IsInState(EBuildGunState::BGS_MENU)) {
+        BuildGun->GotoNoneState();
+    } else {
+        BuildGun->GotoMenuState();
+    }
+    ```
