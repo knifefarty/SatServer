@@ -37,6 +37,8 @@ public:
     static void ConnectToConfiguredServer(UObject* WorldContextObject);
 
 protected:
+    virtual TSharedRef<SWidget> RebuildWidget() override;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LocalServerConnect")
     FText ButtonText;
 

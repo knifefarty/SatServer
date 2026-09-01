@@ -15,6 +15,67 @@ ULocalServerConnectButton::ULocalServerConnectButton(const FObjectInitializer& O
     SetIsFocusable(true);
 }
 
+TSharedRef<SWidget> ULocalServerConnectButton::RebuildWidget()
+{
+    if (!WidgetTree)
+    {
+        WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
+    }
+
+    if (WidgetTree && !WidgetTree->RootWidget)
+    {
+        UClass* FEButtonClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/FactoryGame/Interface/UI/Menu/Widget_FrontEnd_Button.Widget_FrontEnd_Button_C"));
+        if (FEButtonClass)
+        {
+            ChildFrontEndButton = WidgetTree->ConstructWidget<UUserWidget>(FEButtonClass, TEXT("FE_LocalConnectBtn"));
+            if (ChildFrontEndButton)
+            {
+                WidgetTree->RootWidget = ChildFrontEndButton;
+
+                UFunction* SetTitleFunc = ChildFrontEndButton->FindFunction(FName(TEXT("SetTitle")));
+                if (SetTitleFunc)
+                {
+                    struct FSetTitleParams { FText Title; };
+                    FSetTitleParams Params;
+                    Params.Title = ButtonText;
+                    ChildFrontEndButton->ProcessEvent(SetTitleFunc, &Params);
+                }
+
+                UFunction* SetBigFunc = ChildFrontEndButton->FindFunction(FName(TEXT("SetIsBigButton")));
+                if (SetBigFunc)
+                {
+                    struct FSetBigParams { bool bIsBig; };
+                    FSetBigParams Params;
+                    Params.bIsBig = true;
+                    ChildFrontEndButton->ProcessEvent(SetBigFunc, &Params);
+                }
+            }
+        }
+
+        if (!WidgetTree->RootWidget)
+        {
+            UButton* FallbackBtn = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("FallbackBtn"));
+            UTextBlock* FallbackTxt = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FallbackTxt"));
+            if (FallbackTxt)
+            {
+                FallbackTxt->SetText(ButtonText);
+                FallbackTxt->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 20));
+                FallbackTxt->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+            }
+            if (FallbackBtn)
+            {
+                if (FallbackTxt)
+                {
+                    FallbackBtn->AddChild(FallbackTxt);
+                }
+                WidgetTree->RootWidget = FallbackBtn;
+            }
+        }
+    }
+
+    return Super::RebuildWidget();
+}
+
 void ULocalServerConnectButton::NativeConstruct()
 {
     Super::NativeConstruct();
@@ -25,77 +86,20 @@ void ULocalServerConnectButton::NativeConstruct()
         TargetIP = ConfiguredIP;
     }
 
-    if (!WidgetTree)
+    if (ChildFrontEndButton)
     {
-        return;
-    }
-
-    // Try to instantiate Satisfactory's authentic Widget_FrontEnd_Button
-    UClass* FEButtonClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/FactoryGame/Interface/UI/Menu/Widget_FrontEnd_Button.Widget_FrontEnd_Button_C"));
-    if (FEButtonClass)
-    {
-        ChildFrontEndButton = WidgetTree->ConstructWidget<UUserWidget>(FEButtonClass, TEXT("FE_LocalConnectBtn"));
-        if (ChildFrontEndButton)
+        // Hook click event via Unreal multicast delegate property reflection
+        if (FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(ChildFrontEndButton->GetClass()->FindPropertyByName(FName(TEXT("OnClicked")))))
         {
-            WidgetTree->RootWidget = ChildFrontEndButton;
-
-            // Set button text via SetTitle function
-            UFunction* SetTitleFunc = ChildFrontEndButton->FindFunction(FName(TEXT("SetTitle")));
-            if (SetTitleFunc)
-            {
-                struct FSetTitleParams
-                {
-                    FText Title;
-                };
-                FSetTitleParams Params;
-                Params.Title = ButtonText;
-                ChildFrontEndButton->ProcessEvent(SetTitleFunc, &Params);
-            }
-
-            // Set IsBigButton to true for main menu primary button styling
-            UFunction* SetBigFunc = ChildFrontEndButton->FindFunction(FName(TEXT("SetIsBigButton")));
-            if (SetBigFunc)
-            {
-                struct FSetBigParams
-                {
-                    bool bIsBig;
-                };
-                FSetBigParams Params;
-                Params.bIsBig = true;
-                ChildFrontEndButton->ProcessEvent(SetBigFunc, &Params);
-            }
-
-            // Hook click event via Unreal multicast delegate property reflection
-            if (FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(ChildFrontEndButton->GetClass()->FindPropertyByName(FName(TEXT("OnClicked")))))
-            {
-                FScriptDelegate Delegate;
-                Delegate.BindUFunction(this, FName(TEXT("HandleButtonClicked")));
-                DelegateProp->AddDelegate(Delegate, ChildFrontEndButton);
-            }
-            return;
+            FScriptDelegate Delegate;
+            Delegate.BindUFunction(this, FName(TEXT("HandleButtonClicked")));
+            DelegateProp->AddDelegate(Delegate, ChildFrontEndButton);
         }
     }
-
-    // Fallback: Construct standard UButton + UTextBlock
-    UButton* FallbackBtn = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("FallbackBtn"));
-    UTextBlock* FallbackTxt = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FallbackTxt"));
-
-    if (FallbackTxt)
+    else if (UButton* FallbackBtn = Cast<UButton>(WidgetTree ? WidgetTree->RootWidget : nullptr))
     {
-        FallbackTxt->SetText(ButtonText);
-        FSlateFontInfo FontInfo = FCoreStyle::GetDefaultFontStyle("Bold", 20);
-        FallbackTxt->SetFont(FontInfo);
-        FallbackTxt->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-    }
-
-    if (FallbackBtn)
-    {
-        if (FallbackTxt)
-        {
-            FallbackBtn->AddChild(FallbackTxt);
-        }
+        FallbackBtn->OnClicked.RemoveAll(this);
         FallbackBtn->OnClicked.AddDynamic(this, &ULocalServerConnectButton::HandleButtonClicked);
-        WidgetTree->RootWidget = FallbackBtn;
     }
 }
 
