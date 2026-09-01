@@ -42,11 +42,14 @@
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
 ## 5. Vehicle Input & Enhanced Input Subsystem
-- **Unmapping Conflicting Actions in Vehicle IMC**:
-  - Satisfactory's `IMC_Vehicle` maps `EKeys::Gamepad_LeftShoulder` to `IA_ToggleHUD`. To replace this behavior, unmap the key directly from the `UInputMappingContext` asset at startup:
+- **Runtime Vehicle IMC Unmapping**:
+  - Asset-backed `UInputMappingContext` objects (like `mMappingContext`) are loaded into memory when actors spawn in the world, not at module startup.
+  - **The Standard**: Unmap conflicting actions (`EKeys::Gamepad_LeftShoulder` / `IA_ToggleHUD`) dynamically on the active vehicle instance upon driver entry:
     ```cpp
-    if (UInputMappingContext* VehicleIMC = Cast<UInputMappingContext>(PropIMC->GetObjectPropertyValue_InContainer(CDO))) {
-        VehicleIMC->UnmapKey(nullptr, EKeys::Gamepad_LeftShoulder);
+    if (FObjectProperty* PropIMC = FindFProperty<FObjectProperty>(Vehicle->GetClass(), TEXT("mMappingContext"))) {
+        if (UInputMappingContext* VehicleIMC = Cast<UInputMappingContext>(PropIMC->GetObjectPropertyValue_InContainer(Vehicle))) {
+            VehicleIMC->UnmapKey(nullptr, EKeys::Gamepad_LeftShoulder);
+        }
     }
     ```
-  - **Direct Build Gun Activation**: Call `BuildGun->GotoMenuState()`, `BuildGun->GotoDismantleState()`, and `BuildGun->GotoNoneState()` directly on `Driver->GetBuildGun()` rather than character equip wrappers which check `IsDrivingVehicle()`.
+  - **Native Build Menu Input Ingestion**: Call `Driver->Input_ToggleBuildGunBuild(FInputActionValue(true))` to invoke Satisfactory's authentic build menu open/close routine.
