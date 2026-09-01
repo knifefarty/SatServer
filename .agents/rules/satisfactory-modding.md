@@ -40,3 +40,13 @@
     }
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
+
+## 5. SML Native Hooking for Virtual Methods
+- **Virtual Function Hooking Requires CDO Instance**:
+  - In MSVC (Windows x64), virtual methods that override base class functions compile into virtual table thunks. SML's `NativeHookManager` cannot resolve the function address without a sample object pointer.
+  - **The Standard**: Always use `SUBSCRIBE_METHOD_VIRTUAL` or `SUBSCRIBE_METHOD_VIRTUAL_AFTER` and pass `GetDefault<TClass>()` as the sample instance:
+    ```cpp
+    SUBSCRIBE_METHOD_VIRTUAL_AFTER(AFGDriveablePawn::DriverEnter, GetDefault<AFGDriveablePawn>(), [](bool bSuccess, AFGDriveablePawn* Self, AFGCharacterPlayer* Driver) {
+        // Implementation
+    });
+    ```
