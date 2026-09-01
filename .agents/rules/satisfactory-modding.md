@@ -41,8 +41,8 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Build Gun Collision Channels & Inverted Y Control
-- **`ECC_GameTraceChannel5` Collision Channel**:
-  - In Satisfactory 1.0+, `TC_BuildGun` maps to `ECC_GameTraceChannel5`. Using native `ECC_GameTraceChannel5` prevents linker symbol export errors while accurately detecting terrain, foundations, and snapping targets.
-- **Inverted Pitch Alignment**:
-  - Add positive pitch delta to vehicle `SpringArm->SetRelativeRotation` to maintain the player's inverted Y-axis preferences.
+## 5. Vehicle Build Gun Arm Slotting & Camera Offset Raycasts
+- **`ES_ARMS` Equipment Slotting**:
+  - When triggering `BuildState->PrimaryFireRelease()`, Satisfactory asserts `Driver->GetEquipmentInSlot(EEquipmentSlot::ES_ARMS) == GetBuildGun()`. Call `Driver->EquipEquipment(BuildGun)` when entering build states to satisfy this assertion and prevent construction crashes.
+- **SpringArm Distance Offset**:
+  - Because vehicle spring arms extend ~6 meters behind the vehicle actor, start build gun raycasts at `CameraLoc + (CameraRot.Vector() * 800.0f)` and ignore all attached child actors via `Vehicle->GetAttachedActors()` to guarantee 100% raycast clarity across all angles.
