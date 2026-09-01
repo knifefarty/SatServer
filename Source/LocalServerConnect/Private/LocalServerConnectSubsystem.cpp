@@ -31,32 +31,7 @@ void ALocalServerConnectSubsystem::RegisterMainMenuHook()
         return;
     }
 
-    // 1. Register with SML's official WidgetBlueprintHookManager
-    if (GEngine)
-    {
-        UWidgetBlueprintHookManager* HookMgr = GEngine->GetEngineSubsystem<UWidgetBlueprintHookManager>();
-        if (HookMgr)
-        {
-            UWidgetBlueprintHookData* HookData = NewObject<UWidgetBlueprintHookData>();
-            HookData->WidgetClass = TSoftClassPtr<UUserWidget>(FSoftObjectPath(TEXT("/Game/FactoryGame/Interface/UI/Menu/MainMenu/BP_MainMenuWidget.BP_MainMenuWidget_C")));
-            HookData->NewWidgetClass = ULocalServerConnectButton::StaticClass();
-            HookData->NewWidgetName = TEXT("LocalServerConnectButton");
-            HookData->ParentWidgetName = TEXT("mMainMenuList");
-            HookData->ParentWidgetType = EWidgetBlueprintHookParentType::Direct;
-            HookData->ParentSlotIndex = 2;
-
-            UWidgetBlueprintHookSlot_Generic* SlotConfig = NewObject<UWidgetBlueprintHookSlot_Generic>(HookData);
-            SlotConfig->Padding = FMargin(0.0f, 4.0f, 0.0f, 4.0f);
-            SlotConfig->HorizontalAlignment = HAlign_Fill;
-            SlotConfig->VerticalAlignment = VAlign_Center;
-            HookData->SlotConfiguration = SlotConfig;
-
-            HookMgr->RegisterWidgetBlueprintHook(HookData);
-            UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] Registered SML WidgetBlueprintHook for BP_MainMenuWidget -> mMainMenuList!"));
-        }
-    }
-
-    // 2. Multi-hook runtime safety net
+    // Runtime hook safety net
     auto HookHandler = [](UWidget* Widget)
     {
         if (Widget && Widget->GetClass())
@@ -96,13 +71,11 @@ void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMen
 
     UPanelWidget* TargetPanel = nullptr;
 
-    // First try to find mMainMenuList directly
     if (UWidget* ListWidget = MainMenuWidget->WidgetTree->FindWidget(FName(TEXT("mMainMenuList"))))
     {
         TargetPanel = Cast<UPanelWidget>(ListWidget);
     }
 
-    // Fallback: search all widgets for button container
     if (!TargetPanel)
     {
         TArray<UWidget*> AllWidgets;

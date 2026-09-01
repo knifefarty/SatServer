@@ -16,15 +16,7 @@ ULocalServerConnectGameInstanceModule::ULocalServerConnectGameInstanceModule()
         HookData->ParentWidgetName = TEXT("mMainMenuList");
         HookData->ParentWidgetType = EWidgetBlueprintHookParentType::Direct;
         HookData->ParentSlotIndex = 2;
-
-        UWidgetBlueprintHookSlot_Generic* SlotConfig = CreateDefaultSubobject<UWidgetBlueprintHookSlot_Generic>(TEXT("MainMenuSlotConfig"));
-        if (SlotConfig)
-        {
-            SlotConfig->Padding = FMargin(0.0f, 4.0f, 0.0f, 4.0f);
-            SlotConfig->HorizontalAlignment = HAlign_Fill;
-            SlotConfig->VerticalAlignment = VAlign_Center;
-            HookData->SlotConfiguration = SlotConfig;
-        }
+        HookData->SlotConfiguration = nullptr; // Left null to use native VerticalBoxSlot defaults safely
 
         WidgetBlueprintHooks.Add(HookData);
     }
