@@ -41,16 +41,14 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Possession & Driver Controller Linkage
-- **Driver Controller Re-linking during Vehicle Driving**:
-  - In Unreal Engine, when a player controller possesses a vehicle (`AFGDriveablePawn`), the driver character's `Controller` pointer is cleared to `nullptr`.
-  - All native character and build gun UI calls (`Input_ToggleBuildGunBuild`, `IsLocallyControlled()`, `GetGameUI()`) require a valid `Controller` pointer.
-  - **The Standard**: In the vehicle subsystem, link the `Driver->Controller` pointer to `PC` while driving:
+## 5. Vehicle UI & Build Menu Invocation
+- **Direct GameUI Widget Invocation**:
+  - While driving, character input actions are decoupled from the Slate viewport.
+  - **The Standard**: Invoke the Build Menu widget directly via `UFGGameUI::OnToggleInteractWidget`:
     ```cpp
-    if (Driver->GetController() != PC) {
-        Driver->SetOwner(PC);
-        if (FObjectProperty* Prop = FindFProperty<FObjectProperty>(APawn::StaticClass(), TEXT("Controller"))) {
-            Prop->SetObjectPropertyValue_InContainer(Driver, PC);
-        }
+    UFGGameUI* GameUI = PC->GetGameUI();
+    UClass* BuildMenuClass = LoadClass<UFGInteractWidget>(nullptr, TEXT("/Game/FactoryGame/Interface/UI/InGame/BuildMenu/Widget_BuildMode.Widget_BuildMode_C"));
+    if (GameUI && BuildMenuClass) {
+        GameUI->OnToggleInteractWidget(BuildMenuClass, Driver);
     }
     ```
