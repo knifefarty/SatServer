@@ -250,16 +250,30 @@ void ULocalServerConnectButton::ConnectToConfiguredServer(UObject* WorldContextO
         EffectiveIP = TEXT("192.168.1.89");
     }
 
+    // Append SessionDefinition=SessionDef_IP so Satisfactory initializes direct IP session mode
+    FString TravelURL = EffectiveIP;
+    if (!TravelURL.Contains(TEXT("SessionDefinition=")))
+    {
+        if (TravelURL.Contains(TEXT("?")))
+        {
+            TravelURL += TEXT("&SessionDefinition=SessionDef_IP");
+        }
+        else
+        {
+            TravelURL += TEXT("?SessionDefinition=SessionDef_IP");
+        }
+    }
+
     UWorld* World = WorldContextObject ? WorldContextObject->GetWorld() : nullptr;
     APlayerController* PC = World ? UGameplayStatics::GetPlayerController(World, 0) : nullptr;
 
     if (PC)
     {
-        PC->ClientTravel(EffectiveIP, ETravelType::TRAVEL_Absolute);
+        PC->ClientTravel(TravelURL, ETravelType::TRAVEL_Absolute);
     }
     else if (GEngine)
     {
-        FString Command = FString::Printf(TEXT("open %s"), *EffectiveIP);
+        FString Command = FString::Printf(TEXT("open %s"), *TravelURL);
         GEngine->Exec(World, *Command);
     }
 }
