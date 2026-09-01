@@ -41,8 +41,8 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun Equipment Component & Front Projection
-- **`UFGInventoryComponentEquipment::SetActiveEquipment`**:
-  - `AFGCharacterPlayer::GetEquipmentInSlot(slot)` directly queries the underlying `UFGInventoryComponentEquipment`. Call `Driver->GetEquipmentSlot(EEquipmentSlot::ES_ARMS)->SetActiveEquipment(BuildGun)` to ensure the character's active equipment matches the build gun, satisfying all server placement assertions.
-- **Front-Projected Raycasting**:
-  - Trace origins must project 4.0 meters ahead of the vehicle center along the aim vector (`VehicleCenter + ForwardAim * 400.0f + FVector(0, 0, 50.0f)`). This ensures the raycast starts outside the vehicle cabin and clearance bounds, preventing holograms from snapping onto the vehicle roof.
+## 5. Vehicle Build Gun Exit Cleanup & Dismantle Protection
+- **Vehicle Exit State Cleanup**:
+  - When the driver exits the vehicle, immediately reset the build gun state via `BuildGun->GotoNoneState()` and `BuildGun->UnEquip()`, and reset input gates and move/look locks (`ResetIgnoreLookInput()`, `ResetIgnoreMoveInput()`).
+- **Vehicle Dismantle Protection**:
+  - Exclude the currently driven vehicle (`HitActor == Vehicle || HitActor->GetAttachParentActor() == Vehicle`) from `BuildGun->GetHitResult()` to prevent accidental dismantling of the active vehicle.
