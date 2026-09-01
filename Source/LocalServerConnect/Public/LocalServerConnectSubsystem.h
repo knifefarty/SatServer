@@ -17,12 +17,11 @@ public:
 
     virtual void BeginPlay() override;
 
-protected:
-    /** Register native hook on Widget_MainMenu::Construct */
-    void RegisterMainMenuHook();
-
     /** Injects the connect button into the Main Menu Button Container */
     static void InjectButtonIntoMainMenu(UUserWidget* MainMenuWidget);
+
+    /** Register native hook on Widget */
+    static void RegisterMainMenuHook();
 
 private:
     static bool bHookRegistered;

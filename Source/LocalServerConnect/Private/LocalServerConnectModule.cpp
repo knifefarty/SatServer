@@ -1,15 +1,18 @@
 #include "LocalServerConnectModule.h"
+#include "LocalServerConnectSubsystem.h"
 
 #define LOCTEXT_NAMESPACE "FLocalServerConnectModule"
 
 void FLocalServerConnectModule::StartupModule()
 {
-    // Module startup logic
+#if !UE_SERVER
+    ALocalServerConnectSubsystem::RegisterMainMenuHook();
+    UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] StartupModule executed and Main Menu hook registered!"));
+#endif
 }
 
 void FLocalServerConnectModule::ShutdownModule()
 {
-    // Module shutdown logic
 }
 
 #undef LOCTEXT_NAMESPACE
