@@ -15,7 +15,8 @@ public class LocalServerConnect : ModuleRules
             "SlateCore",
             "UMG",
             "FactoryGame",
-            "SML"
+            "SML",
+            "OnlineIntegration"
         });
 
         PrivateDependencyModuleNames.AddRange(new string[] {

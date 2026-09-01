@@ -11,6 +11,10 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/PlayerController.h"
+#include "Engine/GameInstance.h"
+#include "CommonSessionSubsystem.h"
+#include "SessionCreationSettings.h"
+#include "SessionMigrationSequence.h"
 #include "UObject/UnrealType.h"
 
 ULocalServerConnectButton::ULocalServerConnectButton(const FObjectInitializer& ObjectInitializer)
@@ -250,30 +254,43 @@ void ULocalServerConnectButton::ConnectToConfiguredServer(UObject* WorldContextO
         EffectiveIP = TEXT("192.168.1.89");
     }
 
-    // Append SessionDefinition=SessionDef_IP so Satisfactory initializes direct IP session mode
-    FString TravelURL = EffectiveIP;
-    if (!TravelURL.Contains(TEXT("SessionDefinition=")))
+    UWorld* World = WorldContextObject ? WorldContextObject->GetWorld() : nullptr;
+    APlayerController* PC = World ? UGameplayStatics::GetPlayerController(World, 0) : nullptr;
+    UGameInstance* GI = World ? World->GetGameInstance() : nullptr;
+
+    // Use Satisfactory's official CommonSessionSubsystem to create and start a native SessionJoiningSequence
+    if (GI)
     {
-        if (TravelURL.Contains(TEXT("?")))
+        UCommonSessionSubsystem* SessionSubsystem = GI->GetSubsystem<UCommonSessionSubsystem>();
+        if (SessionSubsystem)
         {
-            TravelURL += TEXT("&SessionDefinition=SessionDef_IP");
-        }
-        else
-        {
-            TravelURL += TEXT("?SessionDefinition=SessionDef_IP");
+            FSessionJoinParams JoinParams;
+            JoinParams.Player = PC;
+            JoinParams.RawAddress = EffectiveIP;
+
+            USessionMigrationSequence* JoinSequence = SessionSubsystem->CreateSessionJoiningSequence(JoinParams);
+            if (JoinSequence)
+            {
+                JoinSequence->Start();
+                UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] Initiated official USessionJoiningSequence for %s!"), *EffectiveIP);
+                return;
+            }
         }
     }
 
-    UWorld* World = WorldContextObject ? WorldContextObject->GetWorld() : nullptr;
-    APlayerController* PC = World ? UGameplayStatics::GetPlayerController(World, 0) : nullptr;
-
+    // Direct travel fallback
     if (PC)
     {
+        FString TravelURL = EffectiveIP;
+        if (!TravelURL.Contains(TEXT("SessionDefinition=")))
+        {
+            TravelURL += TravelURL.Contains(TEXT("?")) ? TEXT("&SessionDefinition=SessionDef_IP") : TEXT("?SessionDefinition=SessionDef_IP");
+        }
         PC->ClientTravel(TravelURL, ETravelType::TRAVEL_Absolute);
     }
     else if (GEngine)
     {
-        FString Command = FString::Printf(TEXT("open %s"), *TravelURL);
+        FString Command = FString::Printf(TEXT("open %s"), *EffectiveIP);
         GEngine->Exec(World, *Command);
     }
 }
