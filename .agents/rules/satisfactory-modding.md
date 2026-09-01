@@ -41,8 +41,8 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Driving vs Build Mode Context Swapping
+## 5. Vehicle Build Mode Contexts & Dismantle Targeting
+- **Dismantle Target Resolution**:
+  - `UFGBuildGunStateDismantle::SetAimedAtActor` is a private method. Setting `BuildGun->GetHitResult() = Hit` automatically updates the aimed dismantle actor during `TickState()`.
 - **Dynamic Context Swapping**:
   - When in build mode (`BGS_BUILD`, `BGS_DISMANTLE`, `BGS_MENU`), remove `mMappingContext` (the vehicle driving context) from `UEnhancedInputLocalPlayerSubsystem` so all trigger, bumper, d-pad, and stick inputs are dedicated to building. Restore the vehicle context when returning to `BGS_NONE`.
-- **Hologram Location Forwarding**:
-  - To prevent holograms from colliding with the vehicle mesh, trace from the vehicle camera ignoring `Vehicle` and `Driver`, and update the hologram position every frame via `Hologram->SetHologramLocationAndRotation(Hit)` and `DismantleState->SetAimedAtActor(Hit.GetActor())`.
