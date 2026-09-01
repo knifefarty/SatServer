@@ -41,8 +41,8 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun Arm Slotting & Camera Offset Raycasts
-- **`ES_ARMS` Equipment Slotting**:
-  - When triggering `BuildState->PrimaryFireRelease()`, Satisfactory asserts `Driver->GetEquipmentInSlot(EEquipmentSlot::ES_ARMS) == GetBuildGun()`. Call `Driver->EquipEquipment(BuildGun)` when entering build states to satisfy this assertion and prevent construction crashes.
-- **SpringArm Distance Offset**:
-  - Because vehicle spring arms extend ~6 meters behind the vehicle actor, start build gun raycasts at `CameraLoc + (CameraRot.Vector() * 800.0f)` and ignore all attached child actors via `Vehicle->GetAttachedActors()` to guarantee 100% raycast clarity across all angles.
+## 5. Vehicle Build Gun Arm Slotting & Reflection Assignment
+- **`mActiveEquipments` Reflection Assignment**:
+  - `EquipEquipment()` does not overwrite `mActiveEquipments[ES_ARMS]` if the equipment is already instantiated. Use `FScriptArrayHelper` on `mActiveEquipments` to directly assign `BuildGun` into index `(uint8)EEquipmentSlot::ES_ARMS`. This ensures `GetEquipmentInSlot(ES_ARMS)` reliably returns the Build Gun and satisfies the placement assertion.
+- **Hologram Visibility Assurance**:
+  - Call `Hologram->SetActorHiddenInGame(false)` upon setting new location and rotation from vehicle camera raycasts.
