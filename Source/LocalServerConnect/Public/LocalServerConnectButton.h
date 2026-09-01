@@ -6,11 +6,10 @@
 
 class UButton;
 class UTextBlock;
-class UBorder;
 
 /**
  * Custom Main Menu Button Widget for Direct LAN / Listen Server Connection.
- * Supports Gamepad D-Pad navigation, Slate focus trapping, and SML configuration.
+ * Integrates directly with Satisfactory's FrontEnd Button styling and Slate animations.
  */
 UCLASS(BlueprintType, Blueprintable)
 class LOCALSERVERCONNECT_API ULocalServerConnectButton : public UUserWidget
@@ -21,8 +20,6 @@ public:
     ULocalServerConnectButton(const FObjectInitializer& ObjectInitializer);
 
     virtual void NativeConstruct() override;
-    virtual void NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent) override;
-    virtual void NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent) override;
 
     /** Execute console command 'open <IP>' */
     UFUNCTION(BlueprintCallable, Category = "LocalServerConnect")
@@ -46,12 +43,6 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LocalServerConnect")
     FString TargetIP;
 
-    UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "LocalServerConnect")
-    TObjectPtr<UButton> btn_Connect;
-
-    UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "LocalServerConnect")
-    TObjectPtr<UTextBlock> txt_Label;
-
-    UPROPERTY(BlueprintReadOnly, meta = (BindWidgetOptional), Category = "LocalServerConnect")
-    TObjectPtr<UBorder> FocusHighlightBorder;
+    UPROPERTY(BlueprintReadOnly, Category = "LocalServerConnect")
+    TObjectPtr<UUserWidget> ChildFrontEndButton;
 };

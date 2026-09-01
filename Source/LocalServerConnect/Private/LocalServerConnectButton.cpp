@@ -3,7 +3,6 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
-#include "Components/Border.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 
@@ -25,66 +24,78 @@ void ULocalServerConnectButton::NativeConstruct()
         TargetIP = ConfiguredIP;
     }
 
-    // If not using a UMG asset, dynamically construct button and text in WidgetTree
-    if (!btn_Connect && WidgetTree)
+    if (!WidgetTree)
     {
-        btn_Connect = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("Dynamic_btn_Connect"));
-        txt_Label = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("Dynamic_txt_Label"));
+        return;
+    }
 
-        if (txt_Label)
+    // Try to instantiate Satisfactory's authentic Widget_FrontEnd_Button
+    UClass* FEButtonClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/FactoryGame/Interface/UI/Menu/Widget_FrontEnd_Button.Widget_FrontEnd_Button_C"));
+    if (FEButtonClass)
+    {
+        ChildFrontEndButton = WidgetTree->ConstructWidget<UUserWidget>(FEButtonClass, TEXT("FE_LocalConnectBtn"));
+        if (ChildFrontEndButton)
         {
-            txt_Label->SetText(ButtonText);
-            FSlateFontInfo FontInfo = FCoreStyle::GetDefaultFontStyle("Bold", 22);
-            txt_Label->SetFont(FontInfo);
-            txt_Label->SetColorAndOpacity(FSlateColor(FLinearColor::White));
-            txt_Label->SetJustification(ETextJustify::Left);
-        }
+            WidgetTree->RootWidget = ChildFrontEndButton;
 
-        if (btn_Connect)
-        {
-            if (txt_Label)
+            // Set button text via SetTitle function or Text property
+            UFunction* SetTitleFunc = ChildFrontEndButton->FindFunction(FName(TEXT("SetTitle")));
+            if (SetTitleFunc)
             {
-                btn_Connect->AddChild(txt_Label);
+                struct FSetTitleParams
+                {
+                    FText Title;
+                };
+                FSetTitleParams Params;
+                Params.Title = ButtonText;
+                ChildFrontEndButton->ProcessEvent(SetTitleFunc, &Params);
             }
-            WidgetTree->RootWidget = btn_Connect;
+
+            // Set IsBigButton to true for main menu primary button styling
+            UFunction* SetBigFunc = ChildFrontEndButton->FindFunction(FName(TEXT("SetIsBigButton")));
+            if (SetBigFunc)
+            {
+                struct FSetBigParams
+                {
+                    bool bIsBig;
+                };
+                FSetBigParams Params;
+                Params.bIsBig = true;
+                ChildFrontEndButton->ProcessEvent(SetBigFunc, &Params);
+            }
+
+            // Hook click event
+            FMulticastScriptDelegate* ClickDelegate = ChildFrontEndButton->GetMulticastDelegate(FName(TEXT("OnClicked")));
+            if (ClickDelegate)
+            {
+                TScriptDelegate<FWeakObjectPtr> Delegate;
+                Delegate.BindUFunction(this, FName(TEXT("HandleButtonClicked")));
+                ClickDelegate->AddUnique(Delegate);
+            }
+            return;
         }
     }
 
-    if (btn_Connect)
+    // Fallback: Construct standard UButton + UTextBlock
+    UButton* FallbackBtn = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("FallbackBtn"));
+    UTextBlock* FallbackTxt = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FallbackTxt"));
+
+    if (FallbackTxt)
     {
-        btn_Connect->IsFocusable = true;
-        btn_Connect->OnClicked.RemoveAll(this);
-        btn_Connect->OnClicked.AddDynamic(this, &ULocalServerConnectButton::HandleButtonClicked);
+        FallbackTxt->SetText(ButtonText);
+        FSlateFontInfo FontInfo = FCoreStyle::GetDefaultFontStyle("Bold", 20);
+        FallbackTxt->SetFont(FontInfo);
+        FallbackTxt->SetColorAndOpacity(FSlateColor(FLinearColor::White));
     }
 
-    if (txt_Label)
+    if (FallbackBtn)
     {
-        txt_Label->SetText(ButtonText);
-    }
-
-    if (FocusHighlightBorder)
-    {
-        FocusHighlightBorder->SetVisibility(ESlateVisibility::Hidden);
-    }
-}
-
-void ULocalServerConnectButton::NativeOnAddedToFocusPath(const FFocusEvent& InFocusEvent)
-{
-    Super::NativeOnAddedToFocusPath(InFocusEvent);
-
-    if (FocusHighlightBorder)
-    {
-        FocusHighlightBorder->SetVisibility(ESlateVisibility::Visible);
-    }
-}
-
-void ULocalServerConnectButton::NativeOnRemovedFromFocusPath(const FFocusEvent& InFocusEvent)
-{
-    Super::NativeOnRemovedFromFocusPath(InFocusEvent);
-
-    if (FocusHighlightBorder)
-    {
-        FocusHighlightBorder->SetVisibility(ESlateVisibility::Hidden);
+        if (FallbackTxt)
+        {
+            FallbackBtn->AddChild(FallbackTxt);
+        }
+        FallbackBtn->OnClicked.AddDynamic(this, &ULocalServerConnectButton::HandleButtonClicked);
+        WidgetTree->RootWidget = FallbackBtn;
     }
 }
 

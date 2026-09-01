@@ -1,13 +1,13 @@
 #include "LocalServerConnectSubsystem.h"
 #include "LocalServerConnectButton.h"
 #include "LocalServerConnectConfig.h"
+#include "Patching/WidgetBlueprintHookManager.h"
 #include "Patching/NativeHookManager.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
-#include "Components/Button.h"
-#include "Components/TextBlock.h"
+#include "Components/PanelWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 
@@ -31,6 +31,32 @@ void ALocalServerConnectSubsystem::RegisterMainMenuHook()
         return;
     }
 
+    // 1. Register with SML's official WidgetBlueprintHookManager
+    if (GEngine)
+    {
+        UWidgetBlueprintHookManager* HookMgr = GEngine->GetEngineSubsystem<UWidgetBlueprintHookManager>();
+        if (HookMgr)
+        {
+            UWidgetBlueprintHookData* HookData = NewObject<UWidgetBlueprintHookData>();
+            HookData->WidgetClass = TSoftClassPtr<UUserWidget>(FSoftObjectPath(TEXT("/Game/FactoryGame/Interface/UI/Menu/MainMenu/BP_MainMenuWidget.BP_MainMenuWidget_C")));
+            HookData->NewWidgetClass = ULocalServerConnectButton::StaticClass();
+            HookData->NewWidgetName = TEXT("LocalServerConnectButton");
+            HookData->ParentWidgetName = TEXT("mMainMenuList");
+            HookData->ParentWidgetType = EWidgetBlueprintHookParentType::Direct;
+            HookData->ParentSlotIndex = 2;
+
+            UWidgetBlueprintHookSlot_Generic* SlotConfig = NewObject<UWidgetBlueprintHookSlot_Generic>(HookData);
+            SlotConfig->Padding = FMargin(0.0f, 4.0f, 0.0f, 4.0f);
+            SlotConfig->HorizontalAlignment = HAlign_Fill;
+            SlotConfig->VerticalAlignment = VAlign_Center;
+            HookData->SlotConfiguration = SlotConfig;
+
+            HookMgr->RegisterWidgetBlueprintHook(HookData);
+            UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] Registered SML WidgetBlueprintHook for BP_MainMenuWidget -> mMainMenuList!"));
+        }
+    }
+
+    // 2. Multi-hook runtime safety net
     auto HookHandler = [](UWidget* Widget)
     {
         if (Widget && Widget->GetClass())
@@ -47,20 +73,18 @@ void ALocalServerConnectSubsystem::RegisterMainMenuHook()
         }
     };
 
-    // Hook widget property synchronization
     SUBSCRIBE_UOBJECT_METHOD_AFTER(UWidget, SynchronizeProperties, [HookHandler](UWidget* Widget)
     {
         HookHandler(Widget);
     });
 
-    // Hook visibility changes
     SUBSCRIBE_UOBJECT_METHOD_AFTER(UWidget, SetVisibility, [HookHandler](UWidget* Widget, ESlateVisibility InVisibility)
     {
         HookHandler(Widget);
     });
 
     bHookRegistered = true;
-    UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] Multi-hook registered for Main Menu injection."));
+    UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] Main Menu hooks registered."));
 }
 
 void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMenuWidget)
@@ -70,30 +94,39 @@ void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMen
         return;
     }
 
-    // Locate the vertical box containing the buttons
-    UVerticalBox* ButtonBox = nullptr;
-    TArray<UWidget*> AllWidgets;
-    MainMenuWidget->WidgetTree->GetAllWidgets(AllWidgets);
+    UPanelWidget* TargetPanel = nullptr;
 
-    for (UWidget* W : AllWidgets)
+    // First try to find mMainMenuList directly
+    if (UWidget* ListWidget = MainMenuWidget->WidgetTree->FindWidget(FName(TEXT("mMainMenuList"))))
     {
-        if (UVerticalBox* VB = Cast<UVerticalBox>(W))
+        TargetPanel = Cast<UPanelWidget>(ListWidget);
+    }
+
+    // Fallback: search all widgets for button container
+    if (!TargetPanel)
+    {
+        TArray<UWidget*> AllWidgets;
+        MainMenuWidget->WidgetTree->GetAllWidgets(AllWidgets);
+        for (UWidget* W : AllWidgets)
         {
-            if (VB->GetName().Contains(TEXT("Button")) || VB->GetName().Contains(TEXT("Menu")) || VB->GetChildrenCount() >= 3)
+            if (UVerticalBox* VB = Cast<UVerticalBox>(W))
             {
-                ButtonBox = VB;
-                break;
+                if (VB->GetName().Contains(TEXT("Button")) || VB->GetName().Contains(TEXT("Menu")) || VB->GetChildrenCount() >= 3)
+                {
+                    TargetPanel = VB;
+                    break;
+                }
             }
         }
     }
 
-    if (!ButtonBox)
+    if (!TargetPanel)
     {
         return;
     }
 
-    // Check for existing button to prevent duplicates
-    for (UWidget* Child : ButtonBox->GetAllChildren())
+    // Prevent duplicate injection
+    for (UWidget* Child : TargetPanel->GetAllChildren())
     {
         if (Child && (Child->IsA(ULocalServerConnectButton::StaticClass()) || Child->GetName().Contains(TEXT("LocalConnect"))))
         {
@@ -111,15 +144,15 @@ void ALocalServerConnectSubsystem::InjectButtonIntoMainMenu(UUserWidget* MainMen
 
     if (NewButton)
     {
-        const int32 SlotIndex = FMath::Clamp(2, 0, ButtonBox->GetChildrenCount());
-        UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(ButtonBox->InsertChildAt(SlotIndex, NewButton));
-        if (Slot)
+        const int32 SlotIndex = FMath::Clamp(2, 0, TargetPanel->GetChildrenCount());
+        UPanelSlot* Slot = TargetPanel->InsertChildAt(SlotIndex, NewButton);
+        if (UVerticalBoxSlot* VBSlot = Cast<UVerticalBoxSlot>(Slot))
         {
-            Slot->SetPadding(FMargin(0.0f, 6.0f, 0.0f, 6.0f));
-            Slot->SetHorizontalAlignment(HAlign_Fill);
-            Slot->SetVerticalAlignment(VAlign_Center);
+            VBSlot->SetPadding(FMargin(0.0f, 4.0f, 0.0f, 4.0f));
+            VBSlot->SetHorizontalAlignment(HAlign_Fill);
+            VBSlot->SetVerticalAlignment(VAlign_Center);
         }
 
-        UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] >>> INJECTED LOCAL CONNECT BUTTON INTO %s AT SLOT %d! <<<"), *MainMenuWidget->GetClass()->GetName(), SlotIndex);
+        UE_LOG(LogTemp, Warning, TEXT("[LocalServerConnect] >>> INJECTED AUTHENTIC FRONTEND BUTTON INTO %s AT SLOT %d! <<<"), *MainMenuWidget->GetClass()->GetName(), SlotIndex);
     }
 }
