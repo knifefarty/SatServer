@@ -41,8 +41,9 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Mode Contexts & Dismantle Targeting
-- **Dismantle Target Resolution**:
-  - `UFGBuildGunStateDismantle::SetAimedAtActor` is a private method. Setting `BuildGun->GetHitResult() = Hit` automatically updates the aimed dismantle actor during `TickState()`.
-- **Dynamic Context Swapping**:
-  - When in build mode (`BGS_BUILD`, `BGS_DISMANTLE`, `BGS_MENU`), remove `mMappingContext` (the vehicle driving context) from `UEnhancedInputLocalPlayerSubsystem` so all trigger, bumper, d-pad, and stick inputs are dedicated to building. Restore the vehicle context when returning to `BGS_NONE`.
+## 5. Vehicle Build Mode & Hologram Spawning
+- **`mDrivenVehicle` and Hologram Validation**:
+  - `AFGHologram` checks `Character->IsDrivingVehicle()` (i.e. `mDrivenVehicle != nullptr`) upon spawning and aborts construction with "Invalid Aim Location".
+  - **The Standard**: Clear `Driver->mDrivenVehicle = nullptr;` during driving so `IsDrivingVehicle()` returns false, allowing holograms to spawn and validate placement natively.
+- **Continuous Camera Look**:
+  - Ensure right-stick look analog input (`Gamepad_RightX`/`RightY`) is forwarded directly to `PC->AddYawInput` and `PC->AddPitchInput` unconditionally on every tick.
