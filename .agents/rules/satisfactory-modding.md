@@ -41,8 +41,10 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Mode & Camera Rotation
-- **Preserve `mDrivenVehicle` Pointer**:
-  - `BP_PlayerPawn` animation blueprints query `Driver->GetDrivenVehicle()->GetVelocity()` while seated. Never clear `mDrivenVehicle` to null as it causes unhandled Blueprint null dereference crashes.
-- **Direct Control Rotation for Vehicle Spring Arms**:
-  - Vehicles use `PC->SetControlRotation` directly. Update `PC->SetControlRotation` from analog right-stick inputs (`Gamepad_RightX`/`RightY`) and call `PC->ResetIgnoreLookInput()`.
+## 5. Vehicle Build Gun & SpringArm Camera Integration
+- **Direct SpringArm Camera Control**:
+  - Satisfactory vehicles use `USpringArmComponent` for their 3rd person chase camera. Manipulate `SpringArm->SetRelativeRotation()` directly from analog right-stick values to bypass input consumption.
+- **Offset Raycasting**:
+  - Start build gun traces 2.5 meters in front of the vehicle camera to guarantee the raycast originates outside the vehicle cabin mesh.
+- **PrimaryFire Construction**:
+  - Trigger `BuildState->PrimaryFire()` and `BuildState->PrimaryFireRelease()` on `RT` (`Gamepad_RightTriggerThreshold`) to complete building construction from the driver seat.
