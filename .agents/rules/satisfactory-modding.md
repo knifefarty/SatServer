@@ -41,17 +41,21 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Build Gun & Build Menu Lifecycle
-- **Build Gun State Machine Initialization**:
-  - Satisfactory's `Widget_BuildMenu_C` is tightly coupled to the `UFGBuildGunStateMenu` state machine. Manually spawning the widget without an equipped build gun in `BGS_MENU` state causes a null pointer dereference inside the Blueprint VM.
-  - **The Standard**: Always ensure `BuildGun->IsEquipped()` is true and transition state through `BuildGun->GotoMenuState()` and `BuildGun->GotoDismantleState()`:
+## 5. Vehicle Build Gun Raycasting & Camera Rotation
+- **Hologram Aim Raycasting from Vehicle Viewpoint**:
+  - When in a vehicle, the driver character is stationary inside the cabin, causing default build gun traces to hit the vehicle floor ("Invalid Aim Location").
+  - **The Standard**: Project the build gun raycast from `PC->GetPlayerViewPoint` into `BuildGun->GetHitResult()`:
     ```cpp
-    if (!BuildGun->IsEquipped()) {
-        BuildGun->Equip(Driver);
-    }
-    if (BuildGun->IsInState(EBuildGunState::BGS_MENU)) {
-        BuildGun->GotoNoneState();
-    } else {
-        BuildGun->GotoMenuState();
+    FVector CameraLoc;
+    FRotator CameraRot;
+    PC->GetPlayerViewPoint(CameraLoc, CameraRot);
+    FVector TraceEnd = CameraLoc + (CameraRot.Vector() * 6000.0f);
+    FCollisionQueryParams QueryParams(TEXT("VehicleBuildModeTrace"), true, Vehicle);
+    QueryParams.AddIgnoredActor(Driver);
+    QueryParams.AddIgnoredActor(Vehicle);
+    FHitResult Hit;
+    if (World->LineTraceSingleByChannel(Hit, CameraLoc, TraceEnd, ECC_Visibility, QueryParams)) {
+        BuildGun->GetHitResult() = Hit;
     }
     ```
+  - **Right Stick Look Passthrough**: Poll `EKeys::Gamepad_RightX` and `EKeys::Gamepad_RightY` to call `PC->AddYawInput` and `PC->AddPitchInput` so the camera rotates 360 degrees around the vehicle while building.
