@@ -41,10 +41,12 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun Clearance & Exit Recovery
+## 5. Vehicle Build Gun Clearance & Exit Possession Lifecycle
+- **Vehicle Exit Possession Re-Initialization**:
+  - When the driver exits the vehicle, call `Player->PossessedBy(PC)` and `PC->AcknowledgePossession(Player)`. This forces Unreal Engine and Satisfactory to re-execute the full player possession lifecycle, bind all on-foot Enhanced Input mapping contexts (`IMC_Default`, `IMC_PlayerMovement`), and reset input gates (`PC->ResetMovementModeDisabledInputGate()`).
 - **Vehicle Clearance Suppression**:
   - During build mode, set `ECC_GameTraceChannel10` (ClearanceDetector) and `ECC_GameTraceChannel4` (Clearance) to `ECR_Ignore` on vehicle primitive components. This stops holograms from detecting the vehicle as a clearance obstruction and popping onto the roof.
 - **On-Foot Weapon Restoration**:
-  - On vehicle exit, call `EquipSlot->SetActiveEquipmentIndex(0)`, `Player->OnRep_ActiveEquipments()`, and `Player->UpdateEquipmentVisibility()` to automatically restore the player's active hand equipment.
+  - On vehicle exit, call `EquipSlot->SetActiveEquipmentIndex(0)` and `Player->UpdateEquipmentVisibility()` to automatically redraw the player's active hand equipment.
 - **Dismantle Reset on Active Vehicle**:
   - If the raycast hits the current vehicle, call `BuildGun->GetHitResult().Reset()` and `Vehicle->StopIsLookedAtForDismantle_Implementation()` to prevent targeting the active vehicle.
