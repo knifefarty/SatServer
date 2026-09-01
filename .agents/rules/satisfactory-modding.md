@@ -41,15 +41,16 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Input & Enhanced Input Subsystem
-- **Runtime Vehicle IMC Unmapping**:
-  - Asset-backed `UInputMappingContext` objects (like `mMappingContext`) are loaded into memory when actors spawn in the world, not at module startup.
-  - **The Standard**: Unmap conflicting actions (`EKeys::Gamepad_LeftShoulder` / `IA_ToggleHUD`) dynamically on the active vehicle instance upon driver entry:
+## 5. Vehicle Possession & Driver Controller Linkage
+- **Driver Controller Re-linking during Vehicle Driving**:
+  - In Unreal Engine, when a player controller possesses a vehicle (`AFGDriveablePawn`), the driver character's `Controller` pointer is cleared to `nullptr`.
+  - All native character and build gun UI calls (`Input_ToggleBuildGunBuild`, `IsLocallyControlled()`, `GetGameUI()`) require a valid `Controller` pointer.
+  - **The Standard**: In the vehicle subsystem, link the `Driver->Controller` pointer to `PC` while driving:
     ```cpp
-    if (FObjectProperty* PropIMC = FindFProperty<FObjectProperty>(Vehicle->GetClass(), TEXT("mMappingContext"))) {
-        if (UInputMappingContext* VehicleIMC = Cast<UInputMappingContext>(PropIMC->GetObjectPropertyValue_InContainer(Vehicle))) {
-            VehicleIMC->UnmapKey(nullptr, EKeys::Gamepad_LeftShoulder);
+    if (Driver->GetController() != PC) {
+        Driver->SetOwner(PC);
+        if (FObjectProperty* Prop = FindFProperty<FObjectProperty>(APawn::StaticClass(), TEXT("Controller"))) {
+            Prop->SetObjectPropertyValue_InContainer(Driver, PC);
         }
     }
     ```
-  - **Native Build Menu Input Ingestion**: Call `Driver->Input_ToggleBuildGunBuild(FInputActionValue(true))` to invoke Satisfactory's authentic build menu open/close routine.
