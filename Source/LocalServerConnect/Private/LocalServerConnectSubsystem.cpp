@@ -47,19 +47,16 @@ void ALocalServerConnectSubsystem::RegisterMainMenuHook()
         }
     };
 
+    // Hook widget property synchronization
     SUBSCRIBE_UOBJECT_METHOD_AFTER(UWidget, SynchronizeProperties, [HookHandler](UWidget* Widget)
     {
         HookHandler(Widget);
     });
 
+    // Hook visibility changes
     SUBSCRIBE_UOBJECT_METHOD_AFTER(UWidget, SetVisibility, [HookHandler](UWidget* Widget, ESlateVisibility InVisibility)
     {
         HookHandler(Widget);
-    });
-
-    SUBSCRIBE_UOBJECT_METHOD_AFTER(UUserWidget, SetDesiredFocusWidget, [HookHandler](UUserWidget* UserWidget, UWidget* Widget)
-    {
-        HookHandler(UserWidget);
     });
 
     bHookRegistered = true;
