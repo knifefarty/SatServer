@@ -42,7 +42,7 @@
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
 ## 5. Build Gun Collision Channels & Inverted Y Control
-- **`TC_BuildGun` Collision Channel**:
-  - Satisfactory holograms and build gun raycasts require the official `TC_BuildGun` collision channel (`FactoryGame.h`) rather than standard `ECC_Visibility`. Line traces on `TC_BuildGun` accurately hit foundations, terrain, foliage, and snapping targets.
+- **`ECC_GameTraceChannel5` Collision Channel**:
+  - In Satisfactory 1.0+, `TC_BuildGun` maps to `ECC_GameTraceChannel5`. Using native `ECC_GameTraceChannel5` prevents linker symbol export errors while accurately detecting terrain, foundations, and snapping targets.
 - **Inverted Pitch Alignment**:
   - Add positive pitch delta to vehicle `SpringArm->SetRelativeRotation` to maintain the player's inverted Y-axis preferences.
