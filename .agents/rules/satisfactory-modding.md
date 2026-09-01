@@ -41,10 +41,11 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun & SpringArm Camera Integration
-- **Direct SpringArm Camera Control**:
-  - Satisfactory vehicles use `USpringArmComponent` for their 3rd person chase camera. Manipulate `SpringArm->SetRelativeRotation()` directly from analog right-stick values to bypass input consumption.
-- **Offset Raycasting**:
-  - Start build gun traces 2.5 meters in front of the vehicle camera to guarantee the raycast originates outside the vehicle cabin mesh.
-- **PrimaryFire Construction**:
-  - Trigger `BuildState->PrimaryFire()` and `BuildState->PrimaryFireRelease()` on `RT` (`Gamepad_RightTriggerThreshold`) to complete building construction from the driver seat.
+## 5. Automated Mod Packaging & Trigger Mapping
+- **AutomationTool Command-Line Packaging**:
+  - Package plugins directly using `RunUAT.bat` with `-platform=Win64 -server -serverplatform=Win64`:
+    ```powershell
+    & "K:\SatisfactoryModding\Engine\Engine\Build\BatchFiles\RunUAT.bat" -ScriptsForProject="$project" PackagePlugin -project="$project" -clientconfig=Shipping -serverconfig=Shipping -utf8output -DLCName=VehicleBuildMode -build -platform=Win64 -server -serverplatform=Win64 -nocompileeditor -installed
+    ```
+- **Unreal Gamepad Trigger Key Constants**:
+  - Use `EKeys::Gamepad_RightTrigger` and `EKeys::Gamepad_LeftTrigger` in UE 5.3 C++.
