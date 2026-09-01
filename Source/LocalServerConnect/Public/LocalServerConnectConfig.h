@@ -5,18 +5,6 @@
 #include "LocalServerConnectConfig.generated.h"
 
 /**
- * Configuration structure for Local Server Connect
- */
-USTRUCT(BlueprintType)
-struct FLocalServerConnectConfigStruct
-{
-    GENERATED_BODY()
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Server Connection")
-    FString ServerIP = TEXT("192.168.1.89");
-};
-
-/**
  * Mod Configuration Class exposed to SML and in-game Mod Settings
  */
 UCLASS(BlueprintType)
@@ -33,4 +21,10 @@ public:
     /** Helper to retrieve the configured Server IP directly */
     UFUNCTION(BlueprintPure, Category = "LocalServerConnect")
     static FString GetConfiguredServerIP();
+
+    /** Helper to save and persist the Server IP to disk */
+    UFUNCTION(BlueprintCallable, Category = "LocalServerConnect")
+    static void SaveConfiguredServerIP(const FString& NewIP);
+
+    static FString GetConfigFilePath();
 };

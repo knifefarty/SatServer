@@ -3,6 +3,11 @@
 #include "Blueprint/WidgetTree.h"
 #include "Components/Button.h"
 #include "Components/TextBlock.h"
+#include "Components/EditableTextBox.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "GameFramework/PlayerController.h"
@@ -23,16 +28,24 @@ TSharedRef<SWidget> ULocalServerConnectButton::RebuildWidget()
         WidgetTree = NewObject<UWidgetTree>(this, TEXT("WidgetTree"));
     }
 
+    FString ConfiguredIP = ULocalServerConnectConfig::GetConfiguredServerIP();
+    if (!ConfiguredIP.IsEmpty())
+    {
+        TargetIP = ConfiguredIP;
+    }
+
     if (WidgetTree && !WidgetTree->RootWidget)
     {
+        UVerticalBox* RootVBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RootVBox"));
+        WidgetTree->RootWidget = RootVBox;
+
+        // 1. Construct authentic FrontEnd button
         UClass* FEButtonClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/FactoryGame/Interface/UI/Menu/Widget_FrontEnd_Button.Widget_FrontEnd_Button_C"));
         if (FEButtonClass)
         {
             ChildFrontEndButton = WidgetTree->ConstructWidget<UUserWidget>(FEButtonClass, TEXT("FE_LocalConnectBtn"));
             if (ChildFrontEndButton)
             {
-                WidgetTree->RootWidget = ChildFrontEndButton;
-
                 UFunction* SetTitleFunc = ChildFrontEndButton->FindFunction(FName(TEXT("SetTitle")));
                 if (SetTitleFunc)
                 {
@@ -50,10 +63,17 @@ TSharedRef<SWidget> ULocalServerConnectButton::RebuildWidget()
                     Params.bIsBig = true;
                     ChildFrontEndButton->ProcessEvent(SetBigFunc, &Params);
                 }
+
+                UVerticalBoxSlot* BtnSlot = RootVBox->AddChildToVerticalBox(ChildFrontEndButton);
+                if (BtnSlot)
+                {
+                    BtnSlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, 2.0f));
+                }
             }
         }
 
-        if (!WidgetTree->RootWidget)
+        // Fallback main button if FrontEnd button not found
+        if (!ChildFrontEndButton)
         {
             UButton* FallbackBtn = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("FallbackBtn"));
             UTextBlock* FallbackTxt = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("FallbackTxt"));
@@ -65,11 +85,70 @@ TSharedRef<SWidget> ULocalServerConnectButton::RebuildWidget()
             }
             if (FallbackBtn)
             {
-                if (FallbackTxt)
+                if (FallbackTxt) FallbackBtn->AddChild(FallbackTxt);
+                RootVBox->AddChildToVerticalBox(FallbackBtn);
+            }
+        }
+
+        // 2. Construct sleek Inline IP Editor row
+        UHorizontalBox* IPRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("IPRow"));
+        if (IPRow)
+        {
+            // Label
+            UTextBlock* IPLabel = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("IPLabel"));
+            if (IPLabel)
+            {
+                IPLabel->SetText(FText::FromString(TEXT("IP: ")));
+                IPLabel->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 12));
+                IPLabel->SetColorAndOpacity(FSlateColor(FLinearColor(0.85f, 0.5f, 0.1f, 1.0f))); // FICSIT Orange
+                UHorizontalBoxSlot* LabelSlot = IPRow->AddChildToHorizontalBox(IPLabel);
+                if (LabelSlot)
                 {
-                    FallbackBtn->AddChild(FallbackTxt);
+                    LabelSlot->SetVerticalAlignment(VAlign_Center);
+                    LabelSlot->SetPadding(FMargin(4.0f, 0.0f, 4.0f, 0.0f));
                 }
-                WidgetTree->RootWidget = FallbackBtn;
+            }
+
+            // Editable Text Box for IP
+            IPEditBox = WidgetTree->ConstructWidget<UEditableTextBox>(UEditableTextBox::StaticClass(), TEXT("IPEditBox"));
+            if (IPEditBox)
+            {
+                IPEditBox->SetText(FText::FromString(TargetIP));
+                IPEditBox->SetHintText(FText::FromString(TEXT("192.168.1.89")));
+                IPEditBox->SetFont(FCoreStyle::GetDefaultFontStyle("Regular", 12));
+                UHorizontalBoxSlot* BoxSlot = IPRow->AddChildToHorizontalBox(IPEditBox);
+                if (BoxSlot)
+                {
+                    BoxSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+                    BoxSlot->SetVerticalAlignment(VAlign_Center);
+                    BoxSlot->SetPadding(FMargin(2.0f, 0.0f, 4.0f, 0.0f));
+                }
+            }
+
+            // Save Button
+            SaveButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("SaveButton"));
+            SaveButtonText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("SaveButtonText"));
+            if (SaveButtonText)
+            {
+                SaveButtonText->SetText(FText::FromString(TEXT("Save")));
+                SaveButtonText->SetFont(FCoreStyle::GetDefaultFontStyle("Bold", 11));
+                SaveButtonText->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+            }
+            if (SaveButton)
+            {
+                if (SaveButtonText) SaveButton->AddChild(SaveButtonText);
+                UHorizontalBoxSlot* SaveSlot = IPRow->AddChildToHorizontalBox(SaveButton);
+                if (SaveSlot)
+                {
+                    SaveSlot->SetVerticalAlignment(VAlign_Center);
+                    SaveSlot->SetPadding(FMargin(2.0f, 0.0f, 4.0f, 0.0f));
+                }
+            }
+
+            UVerticalBoxSlot* RowSlot = RootVBox->AddChildToVerticalBox(IPRow);
+            if (RowSlot)
+            {
+                RowSlot->SetPadding(FMargin(8.0f, 2.0f, 8.0f, 6.0f));
             }
         }
     }
@@ -87,9 +166,21 @@ void ULocalServerConnectButton::NativeConstruct()
         TargetIP = ConfiguredIP;
     }
 
+    if (IPEditBox)
+    {
+        IPEditBox->SetText(FText::FromString(TargetIP));
+        IPEditBox->OnTextCommitted.RemoveAll(this);
+        IPEditBox->OnTextCommitted.AddDynamic(this, &ULocalServerConnectButton::HandleTextCommitted);
+    }
+
+    if (SaveButton)
+    {
+        SaveButton->OnClicked.RemoveAll(this);
+        SaveButton->OnClicked.AddDynamic(this, &ULocalServerConnectButton::HandleSaveClicked);
+    }
+
     if (ChildFrontEndButton)
     {
-        // Hook click event via Unreal multicast delegate property reflection
         if (FMulticastDelegateProperty* DelegateProp = CastField<FMulticastDelegateProperty>(ChildFrontEndButton->GetClass()->FindPropertyByName(FName(TEXT("OnClicked")))))
         {
             FScriptDelegate Delegate;
@@ -97,10 +188,37 @@ void ULocalServerConnectButton::NativeConstruct()
             DelegateProp->AddDelegate(Delegate, ChildFrontEndButton);
         }
     }
-    else if (UButton* FallbackBtn = Cast<UButton>(WidgetTree ? WidgetTree->RootWidget : nullptr))
+}
+
+void ULocalServerConnectButton::HandleSaveClicked()
+{
+    if (IPEditBox)
     {
-        FallbackBtn->OnClicked.RemoveAll(this);
-        FallbackBtn->OnClicked.AddDynamic(this, &ULocalServerConnectButton::HandleButtonClicked);
+        FString NewIP = IPEditBox->GetText().ToString().TrimStartAndEnd();
+        if (!NewIP.IsEmpty())
+        {
+            SetTargetIP(NewIP);
+            if (SaveButtonText)
+            {
+                SaveButtonText->SetText(FText::FromString(TEXT("Saved!")));
+            }
+        }
+    }
+}
+
+void ULocalServerConnectButton::HandleTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+{
+    if (CommitMethod == ETextCommit::OnEnter || CommitMethod == ETextCommit::OnUserMovedFocus)
+    {
+        FString NewIP = Text.ToString().TrimStartAndEnd();
+        if (!NewIP.IsEmpty())
+        {
+            SetTargetIP(NewIP);
+            if (SaveButtonText)
+            {
+                SaveButtonText->SetText(FText::FromString(TEXT("Saved!")));
+            }
+        }
     }
 }
 
@@ -111,6 +229,17 @@ void ULocalServerConnectButton::HandleButtonClicked()
 
 void ULocalServerConnectButton::ExecuteServerConnect()
 {
+    // Sync with edit box if modified right before click
+    if (IPEditBox)
+    {
+        FString BoxIP = IPEditBox->GetText().ToString().TrimStartAndEnd();
+        if (!BoxIP.IsEmpty())
+        {
+            TargetIP = BoxIP;
+            ULocalServerConnectConfig::SaveConfiguredServerIP(TargetIP);
+        }
+    }
+
     ConnectToConfiguredServer(this);
 }
 
@@ -127,8 +256,6 @@ void ULocalServerConnectButton::ConnectToConfiguredServer(UObject* WorldContextO
 
     if (PC)
     {
-        // Use ClientTravel to queue clean map transition at end-of-frame tick
-        // This prevents tearing down Slate while Slate is still processing the click event
         PC->ClientTravel(EffectiveIP, ETravelType::TRAVEL_Absolute);
     }
     else if (GEngine)
@@ -140,5 +267,6 @@ void ULocalServerConnectButton::ConnectToConfiguredServer(UObject* WorldContextO
 
 void ULocalServerConnectButton::SetTargetIP(const FString& InIP)
 {
-    TargetIP = InIP;
+    TargetIP = InIP.TrimStartAndEnd();
+    ULocalServerConnectConfig::SaveConfiguredServerIP(TargetIP);
 }
