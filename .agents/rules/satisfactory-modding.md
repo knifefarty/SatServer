@@ -41,8 +41,8 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun Arm Slotting & Reflection Assignment
-- **`mActiveEquipments` Reflection Assignment**:
-  - `EquipEquipment()` does not overwrite `mActiveEquipments[ES_ARMS]` if the equipment is already instantiated. Use `FScriptArrayHelper` on `mActiveEquipments` to directly assign `BuildGun` into index `(uint8)EEquipmentSlot::ES_ARMS`. This ensures `GetEquipmentInSlot(ES_ARMS)` reliably returns the Build Gun and satisfies the placement assertion.
-- **Hologram Visibility Assurance**:
-  - Call `Hologram->SetActorHiddenInGame(false)` upon setting new location and rotation from vehicle camera raycasts.
+## 5. Vehicle Build Gun Equipment Component & Front Projection
+- **`UFGInventoryComponentEquipment::SetActiveEquipment`**:
+  - `AFGCharacterPlayer::GetEquipmentInSlot(slot)` directly queries the underlying `UFGInventoryComponentEquipment`. Call `Driver->GetEquipmentSlot(EEquipmentSlot::ES_ARMS)->SetActiveEquipment(BuildGun)` to ensure the character's active equipment matches the build gun, satisfying all server placement assertions.
+- **Front-Projected Raycasting**:
+  - Trace origins must project 4.0 meters ahead of the vehicle center along the aim vector (`VehicleCenter + ForwardAim * 400.0f + FVector(0, 0, 50.0f)`). This ensures the raycast starts outside the vehicle cabin and clearance bounds, preventing holograms from snapping onto the vehicle roof.
