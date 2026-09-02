@@ -41,13 +41,15 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun Override Equipment & B/Circle Cancel
+## 5. Vehicle Build Gun HUD Crosshairs & Override System
+- **Vehicle HUD Reticle Control**:
+  - When driving in build/dismantle modes, invoke `HUD->SetShowCrossHair(true)`, `HUD->SetForceHideCrossHair(false)`, `HUD->SetCrosshairState(ECrosshairState::ECS_Dismantle)` (or `ECS_Build`), and `HUD->UpdateCrosshair()` so native Satisfactory crosshairs render while mounted in vehicles.
+- **Pumpi / Hide HUD Mode Suppression**:
+  - Ensure `HUD->SetPumpiMode(false)` and `HUD->SetHiddenHUDMode(false)` are continuously maintained to prevent the HUD toggle from hiding the UI.
 - **`SetOverrideEquipment` / `ClearOverrideEquipment` Standard**:
   - Temporary hand equipment in vehicles MUST use `Driver->SetOverrideEquipment(BuildGun)` and `Driver->Server_SetOverrideEquipment(BuildGun)`.
   - On build mode cancel or vehicle exit, call `Driver->ClearOverrideEquipment(BuildGun)` and `Driver->Server_ClearOverrideEquipment(BuildGun)` to cleanly restore normal on-foot weapons and input bindings.
 - **B / Circle & LT Cancel**:
-  - Map `Gamepad_FaceButton_Right` (B/Circle), `Escape`, and `Gamepad_LeftTrigger` (LT) to `BuildGun->GotoNoneState()` and `Driver->ClearOverrideEquipment(BuildGun)` to allow effortless cancellation of holograms.
+  - Map `Gamepad_FaceButton_Right` (B/Circle), `Escape`, and `Gamepad_LeftTrigger` (LT) to `BuildGun->GotoNoneState()` and `Driver->ClearOverrideEquipment(BuildGun)`.
 - **Vehicle Clearance Suppression**:
   - During build mode, set `ECC_GameTraceChannel10` (ClearanceDetector) and `ECC_GameTraceChannel4` (Clearance) to `ECR_Ignore` on vehicle primitive components. This stops holograms from detecting the vehicle as a clearance obstruction and popping onto the roof.
-- **Dismantle Reset on Active Vehicle**:
-  - If the raycast hits the current vehicle, call `BuildGun->GetHitResult().Reset()` and `Vehicle->StopIsLookedAtForDismantle_Implementation()` to prevent targeting the active vehicle.
