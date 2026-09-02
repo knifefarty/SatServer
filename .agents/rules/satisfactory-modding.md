@@ -56,3 +56,15 @@
   - Map `Gamepad_FaceButton_Right` (B/Circle), `Escape`, and `Gamepad_LeftTrigger` (LT) to `BuildGun->GotoNoneState()` and `Driver->ClearOverrideEquipment(BuildGun)`.
 - **Vehicle Clearance Suppression**:
   - During vehicle entry, set `ECC_GameTraceChannel10` (ClearanceDetector) and `ECC_GameTraceChannel4` (Clearance) to `ECR_Ignore` on vehicle primitive components once.
+
+## 6. Resource Scanner & Radar Integration Architecture (Factory Sonar)
+- **Adding Custom Scanner Targets to Radial Wheel**:
+  - Create a subclass inheriting from `UFGResourceDescriptor` (e.g. `UFGResourceDescriptor_FactorySonar`).
+  - Unlock dynamically in `AFGUnlockSubsystem`:
+    ```cpp
+    AFGUnlockSubsystem* UnlockSubsystem = AFGUnlockSubsystem::Get(World);
+    FScannableResourcePair SonarPair(UFGResourceDescriptor_FactorySonar::StaticClass());
+    UnlockSubsystem->UnlockScannableResource(SonarPair);
+    ```
+- **Zero-GC In-World AR Telemetry Rendering**:
+  - Custom HUD billboarding should override `UUserWidget::NativePaint` and use direct Slate draw elements (`FSlateDrawElement::MakeBox`, `FSlateDrawElement::MakeText`) with projected screen space coordinates (`PC->ProjectWorldLocationToScreen`), eliminating transient UObject instantiation and maintaining 144+ FPS.
