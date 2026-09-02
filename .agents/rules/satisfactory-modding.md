@@ -41,15 +41,14 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun HUD Crosshairs & Override System
-- **Vehicle HUD Reticle Control**:
-  - When driving in build/dismantle modes, invoke `HUD->SetShowCrossHair(true)`, `HUD->SetForceHideCrossHair(false)`, `HUD->SetCrosshairState(ECrosshairState::ECS_Dismantle)` (or `ECS_Build`), and `HUD->UpdateCrosshair()` so native Satisfactory crosshairs render while mounted in vehicles.
-- **Pumpi / Hide HUD Mode Suppression**:
-  - Ensure `HUD->SetPumpiMode(false)` and `HUD->SetHiddenHUDMode(false)` are continuously maintained to prevent the HUD toggle from hiding the UI.
+## 5. Vehicle Build Gun Zero-Allocation & HUD Governance
+- **Zero-Allocation in `Tick` Loops**:
+  - Never call `SetCrosshairState()`, `UnmapKey()`, or query/modify primitive collision responses unconditionally in `Tick()`. Calling HUD setters or delegate dispatchers on every frame causes millions of transient `UObject` allocations, triggering `Maximum number of UObjects exceeded (2162688)`.
+  - Always guard with state-checks: `if (HUD->GetCrosshairState() != DesiredState) HUD->SetCrosshairState(DesiredState);`.
 - **`SetOverrideEquipment` / `ClearOverrideEquipment` Standard**:
   - Temporary hand equipment in vehicles MUST use `Driver->SetOverrideEquipment(BuildGun)` and `Driver->Server_SetOverrideEquipment(BuildGun)`.
-  - On build mode cancel or vehicle exit, call `Driver->ClearOverrideEquipment(BuildGun)` and `Driver->Server_ClearOverrideEquipment(BuildGun)` to cleanly restore normal on-foot weapons and input bindings.
+  - On build mode cancel or vehicle exit, call `Driver->ClearOverrideEquipment(BuildGun)` and `Driver->Server_ClearOverrideEquipment(BuildGun)`.
 - **B / Circle & LT Cancel**:
   - Map `Gamepad_FaceButton_Right` (B/Circle), `Escape`, and `Gamepad_LeftTrigger` (LT) to `BuildGun->GotoNoneState()` and `Driver->ClearOverrideEquipment(BuildGun)`.
 - **Vehicle Clearance Suppression**:
-  - During build mode, set `ECC_GameTraceChannel10` (ClearanceDetector) and `ECC_GameTraceChannel4` (Clearance) to `ECR_Ignore` on vehicle primitive components. This stops holograms from detecting the vehicle as a clearance obstruction and popping onto the roof.
+  - During vehicle entry, set `ECC_GameTraceChannel10` (ClearanceDetector) and `ECC_GameTraceChannel4` (Clearance) to `ECR_Ignore` on vehicle primitive components once.
