@@ -41,9 +41,12 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun Clearance & Exit Recovery
-- **Vehicle Exit State Cleanup**:
-  - On vehicle exit, call `BuildGun->GotoNoneState()`, `BuildGun->UnEquip()`, `EquipSlot->SetActiveEquipmentIndex(0)`, `Player->UpdateEquipmentVisibility()`, and `PC->ResetMovementModeDisabledInputGate()`. Never manually invoke `Player->PossessedBy()` during exit as it causes unhandled Blueprint execution crashes.
+## 5. Vehicle Build Gun Override Equipment & B/Circle Cancel
+- **`SetOverrideEquipment` / `ClearOverrideEquipment` Standard**:
+  - Temporary hand equipment in vehicles MUST use `Driver->SetOverrideEquipment(BuildGun)` and `Driver->Server_SetOverrideEquipment(BuildGun)`.
+  - On build mode cancel or vehicle exit, call `Driver->ClearOverrideEquipment(BuildGun)` and `Driver->Server_ClearOverrideEquipment(BuildGun)` to cleanly restore normal on-foot weapons and input bindings.
+- **B / Circle & LT Cancel**:
+  - Map `Gamepad_FaceButton_Right` (B/Circle), `Escape`, and `Gamepad_LeftTrigger` (LT) to `BuildGun->GotoNoneState()` and `Driver->ClearOverrideEquipment(BuildGun)` to allow effortless cancellation of holograms.
 - **Vehicle Clearance Suppression**:
   - During build mode, set `ECC_GameTraceChannel10` (ClearanceDetector) and `ECC_GameTraceChannel4` (Clearance) to `ECR_Ignore` on vehicle primitive components. This stops holograms from detecting the vehicle as a clearance obstruction and popping onto the roof.
 - **Dismantle Reset on Active Vehicle**:
