@@ -41,10 +41,14 @@
     ```
   - **Dependency Requirement**: Add `"OnlineIntegration"` to `PublicDependencyModuleNames` in the mod's `.Build.cs`.
 
-## 5. Vehicle Build Gun Zero-Allocation & HUD Governance
+## 5. Vehicle Build Gun Zero-Allocation & Pointer Hardening
+- **`IsValid()` Pointer Hardening**:
+  - Always check `IsValid(Actor)` and `IsValid(Hologram)` rather than raw null checks to guard against garbage-collected or destroying UObjects during high-speed construction or dismantling.
 - **Zero-Allocation in `Tick` Loops**:
   - Never call `SetCrosshairState()`, `UnmapKey()`, or query/modify primitive collision responses unconditionally in `Tick()`. Calling HUD setters or delegate dispatchers on every frame causes millions of transient `UObject` allocations, triggering `Maximum number of UObjects exceeded (2162688)`.
   - Always guard with state-checks: `if (HUD->GetCrosshairState() != DesiredState) HUD->SetCrosshairState(DesiredState);`.
+- **Hologram Rotation via D-Pad & Scroll**:
+  - Forward `Gamepad_DPad_Left` / `Gamepad_DPad_Right` and `MouseScrollUp` / `MouseScrollDown` directly to `BuildState->Scroll(delta)` to enable rotation in vehicles.
 - **`SetOverrideEquipment` / `ClearOverrideEquipment` Standard**:
   - Temporary hand equipment in vehicles MUST use `Driver->SetOverrideEquipment(BuildGun)` and `Driver->Server_SetOverrideEquipment(BuildGun)`.
   - On build mode cancel or vehicle exit, call `Driver->ClearOverrideEquipment(BuildGun)` and `Driver->Server_ClearOverrideEquipment(BuildGun)`.
